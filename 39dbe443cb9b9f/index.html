@@ -1,0 +1,927 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>一次対応の3点セット ── みなと通信（デモ）</title>
+<style>
+  :root{
+    --bg:#eef1f4; --panel:#ffffff; --ink:#1f2933; --sub:#6b7684; --line:#d4dae1;
+    --head:#1e2a38; --headink:#e8edf2; --stripe:#2f6f8f;
+    --accent:#17627a; --accentln:#0f4658;
+    --rule:#5b4a9e; --rulebg:#ece9f7; --ruleln:#c9c0e6;
+    --ai:#b26a00; --aibg:#fbf0dc; --ailn:#e6cd9b;
+    --warn:#c0392b; --warnbg:#fbe6e0; --warnln:#e3b3ac;
+    --ok:#3a7d4f; --okbg:#e7f3ec; --okln:#bcdcc7;
+    --mask:#2f6f8f; --maskbg:#e3eef4;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.7}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 0 60px}
+
+  .topbar{background:var(--head); color:var(--headink); padding:14px 22px; border-top:5px solid var(--stripe)}
+  .topbar .app{font-size:12.5px; font-weight:800; letter-spacing:.04em}
+  .topbar .sub{font-size:11px; color:#9fb0c0; margin-top:2px}
+
+  .lead{padding:24px 22px 4px}
+  .lead h1{font-size:20px; margin:0 0 10px; line-height:1.5}
+  .lead .story{font-size:13.5px; color:var(--sub); background:var(--panel); border:1px solid var(--line);
+    border-left:4px solid var(--stripe); border-radius:6px; padding:12px 15px; margin:0 0 18px}
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:6px; margin:0 22px 18px; overflow:hidden}
+  .panel h2{font-size:12.5px; margin:0; padding:10px 15px; background:#f4f6f8; border-bottom:1px solid var(--line);
+    letter-spacing:.02em; color:#3a4552; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap}
+  .panel h2 .hint{font-size:10.5px; font-weight:600; color:var(--sub)}
+
+  .formgrid{display:grid; grid-template-columns:1fr 1fr; gap:0}
+  .fitem{padding:10px 15px; border-bottom:1px solid #eef1f4; border-right:1px solid #eef1f4; min-width:0}
+  .fitem:nth-child(2n){border-right:none}
+  .fitem .flabel{font-size:10.5px; color:var(--sub); font-weight:700; margin-bottom:4px; display:flex; align-items:center; flex-wrap:wrap}
+  .fitem .fval{font-size:13px; font-weight:600; background:#f9fafb; border:1px solid var(--line); border-radius:4px; padding:6px 9px}
+  .fitem.wide{grid-column:1 / -1; border-right:none}
+  .finput{width:100%; font:inherit; font-size:13px; font-weight:700; padding:6px 9px; border:1px solid var(--line); border-radius:4px; background:#fff}
+  .finput[readonly]{background:#f9fafb; color:#3a4552}
+  .autobadge{display:none; font-size:9.5px; background:var(--rulebg); color:var(--rule); border:1px solid var(--ruleln); border-radius:10px; padding:1px 7px; margin-left:6px; font-weight:800}
+  .autobadge.show{display:inline-block}
+  .memoinput{width:100%; font:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--line); border-radius:4px; resize:vertical; min-height:44px}
+  .transcript{min-height:190px; font-size:12.5px; line-height:1.75}
+  .chipgroup{display:flex; flex-wrap:wrap; gap:6px}
+  .chip{appearance:none; font:inherit; font-size:11.5px; padding:6px 11px; border-radius:20px; border:1px solid var(--line);
+    background:#fff; cursor:pointer; color:var(--sub)}
+  .chip.sel{background:var(--accent); border-color:var(--accentln); color:#fff; font-weight:700}
+  .chip.sel.ai{background:var(--ai); border-color:#8a5200}
+  .evi{font-size:11px; color:var(--sub); margin-top:5px; min-height:1em}
+  .evi.ai{color:#8a5200}
+  .evi.miss{color:var(--warn); font-weight:700}
+  .evi.human{color:var(--accent)}
+  .clock{font-variant-numeric:tabular-nums}
+
+  .sendbox{background:#f9fafb; border:1px dashed var(--line); border-radius:6px; padding:10px 12px; font-size:12px; white-space:pre-wrap; color:#3a4552; max-height:220px; overflow:auto}
+  .sendbox mark{background:var(--maskbg); color:var(--mask); font-weight:700; border-radius:3px; padding:0 2px}
+  .sendmeta{font-size:11px; color:var(--sub); margin-top:6px}
+  .sendmeta b{color:var(--mask)}
+
+  .recbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  .btn.rec{background:var(--warn); border-color:#8f2a20; color:#fff}
+  .filebtn{position:relative; overflow:hidden}
+  .filebtn input{position:absolute; inset:0; opacity:0; cursor:pointer}
+  .sttstatus{font-size:11.5px; color:var(--sub); margin-top:6px; min-height:1em}
+  .sttstatus.warn{color:var(--warn); font-weight:700}
+  .sttnote{font-size:11px; color:var(--sub); margin-top:6px; line-height:1.7}
+  .missbox{background:var(--warnbg); border:1px solid var(--warnln); border-radius:6px; padding:8px 12px; font-size:12px; color:#7a2318}
+  .missbox ul{margin:4px 0 0; padding-left:18px}
+  .harassbox{border:1px solid var(--line); border-radius:6px; padding:10px 12px; font-size:12px; background:#fff}
+  .hq{display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-bottom:1px solid #f0f0f0}
+  .hq:last-of-type{border-bottom:none}
+  .hq .kind{flex-shrink:0; font-size:10px; font-weight:800; padding:2px 8px; border-radius:20px; background:var(--warnbg); color:var(--warn); border:1px solid var(--warnln)}
+  .hq .q{flex:1; min-width:0}
+  .hq.off .q{color:#a8b0ba; text-decoration:line-through}
+  .hq.off .kind{background:#f4f6f8; color:#a8b0ba; border-color:var(--line)}
+  .hq button{flex-shrink:0; font:inherit; font-size:10.5px; padding:2px 9px; border-radius:12px; border:1px solid var(--line); background:#fff; color:var(--sub); cursor:pointer}
+  .level{margin-top:8px; padding:8px 10px; border-radius:5px; font-size:12px; background:var(--rulebg); border:1px solid var(--ruleln); color:#3d3470}
+  .level b{color:var(--rule)}
+  .level.up{background:var(--warnbg); border-color:var(--warnln); color:#7a2318}
+  .level.up b{color:var(--warn)}
+
+  .actions{padding:12px 15px; border-top:1px solid var(--line); display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center}
+  .btn{appearance:none; cursor:pointer; font:inherit; font-size:13px; font-weight:700; padding:10px 18px;
+    border-radius:6px; border:1px solid var(--accentln); background:var(--accent); color:#fff}
+  .btn:hover{background:var(--accentln)}
+  .btn:disabled{opacity:.6; cursor:default}
+  .btn.ai{background:var(--ai); border-color:#8a5200}
+  .btn.ai:hover{background:#8a5200}
+  .btn.sub{background:#fff; color:var(--accent)}
+  .btn.sub:hover{background:#f0f6f8}
+  .btn.small{font-size:11.5px; padding:6px 12px}
+  .hintline{font-size:11.5px; color:var(--sub)}
+  .hintline.warn{color:var(--warn); font-weight:700}
+
+  .out{display:none}
+  .out.show{display:block}
+  .badge{display:inline-block; font-size:10px; font-weight:800; padding:2px 8px; border-radius:20px; border:1px solid}
+  .badge.rule{color:var(--rule); background:var(--rulebg); border-color:var(--ruleln)}
+  .badge.ai{color:var(--ai); background:var(--aibg); border-color:var(--ailn)}
+  .badge.hand{color:var(--sub); background:#f4f6f8; border-color:var(--line)}
+
+  .outsec{padding:13px 15px; border-top:1px solid var(--line)}
+  .outsec:first-of-type{border-top:none}
+  .doc{background:#fbfbfb; border:1px solid var(--line); border-radius:6px; padding:12px 14px; font-size:12.5px; white-space:pre-wrap; margin-bottom:10px}
+  .doc.blank{color:var(--sub); font-style:italic}
+  .facts{background:#fbfbfb; border:1px solid var(--line); border-radius:6px; padding:12px 14px; font-size:12.5px; margin-bottom:10px}
+  .facts .frow{display:flex; padding:3px 0; border-bottom:1px solid #f0f0f0}
+  .facts .frow:last-child{border-bottom:none}
+  .facts .frow .k{width:110px; color:var(--sub); font-weight:700; flex-shrink:0}
+  .rulebox{background:var(--rulebg); border:1px solid var(--ruleln); border-radius:6px; padding:9px 12px; font-size:12px; color:#3d3470; margin-bottom:8px}
+  .rulebox b{color:var(--rule)}
+  .rulebox.up{background:var(--warnbg); border-color:var(--warnln); color:#7a2318}
+  .rulebox.up b{color:var(--warn)}
+
+  .ledgerwrap{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  table.ledger{width:100%; border-collapse:collapse; font-size:11.5px; min-width:980px}
+  table.ledger th{background:#f9fafb; color:var(--sub); font-weight:700; font-size:10px; text-align:left; padding:6px 8px; border:1px solid var(--line); white-space:nowrap}
+  table.ledger td{padding:6px 8px; border:1px solid var(--line); vertical-align:top; white-space:nowrap}
+  table.ledger td.words{white-space:normal; min-width:240px}
+  table.ledger tr.new td{background:#fffbea}
+  .ledgerbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px}
+
+  .note{background:#fff3de; border:1px solid #ecd6a4; border-radius:6px; padding:12px 15px; margin:0 22px 18px;
+    font-size:12px; color:#5b4212; line-height:1.85}
+  .note b{color:#8a4c00}
+  .note.plain{background:#f4f6f8; border-color:var(--line); color:#3a4552}
+  .note.plain b{color:#1f2933}
+  .foot{font-size:11px; color:var(--sub); padding:0 22px; line-height:1.9}
+  .foot .cap{display:inline-block; background:#fff; border:1px solid var(--line); border-radius:5px; padding:1px 7px; margin:0 5px 5px 0}
+
+  @media (max-width:640px){
+    .topbar{padding:12px 16px}
+    .lead{padding:20px 16px 4px}
+    .lead h1{font-size:18px}
+    .panel, .note{margin-left:16px; margin-right:16px}
+    .foot{padding:0 16px}
+    .formgrid{grid-template-columns:1fr}
+    .fitem{border-right:none}
+    .fitem, .outsec, .actions{padding-left:12px; padding-right:12px}
+    .facts .frow .k{width:92px}
+  }
+</style>
+
+<div style="position:sticky;top:0;z-index:99999;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:9px 14px;background:#12121F;color:#fff;font:600 13px/1.6 'Noto Sans JP','Hiragino Sans',sans-serif;">
+<a href="/#cases" style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:999px;background:#fff;color:#12121F;text-decoration:none;font-weight:700;white-space:nowrap;">← アプリ一覧へ戻る</a>
+<span style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;"><span style="opacity:.7;font-weight:500;">架空の会社のデータで動きます。実際のデータは使っていません。</span><a href="https://zenn.dev/hiroshift/articles/39dbe443cb9b9f" target="_blank" rel="noopener" style="color:#fff;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.4);white-space:nowrap;">設計の解説を読む</a></span>
+</div>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="app">みなと通信　サポート窓口・一次対応支援（デモ）</div>
+    <div class="sub">架空DEMO／AIへ送るのは、名前・番号を伏せた書き起こしと選んだ項目だけです</div>
+  </div>
+
+  <div class="lead">
+    <h1>電話を切ったあと、3つの文書を一から書いていた。</h1>
+    <div class="story">サポート窓口の沢渡さん（架空・在籍10年）は、電話を切るたびに、①お客様への一次返信 ②技術部門への調査依頼 ③台帳の1行を手で書いています。この道具は、<b>通話の書き起こしをAIが読んで受付の項目に印を付け、人が確かめて確定したら、3つを組み立てます</b>。強い言葉や契約を超える要求があれば、AIはその発言を抜き出すだけで、上長に渡すかどうかは決まった規則で決めます（カスハラかどうかを判定するものではありません）。返信の送信と訪問日程の確約は人が行います。</div>
+  </div>
+
+  <!-- 1. 受付 -->
+  <div class="panel">
+    <h2>1. 受付<span class="hint">契約IDで名前とプランを引きます（架空の顧客表）</span></h2>
+    <div class="formgrid">
+      <div class="fitem"><div class="flabel">受付時刻</div><div class="fval"><span id="recvTime">--:--</span>　<span class="clock" id="clock" style="color:var(--sub);font-weight:600"></span></div></div>
+      <div class="fitem">
+        <div class="flabel">契約ID</div>
+        <input class="finput" id="cid" value="S-2091" inputmode="text" autocomplete="off">
+        <div style="font-size:10.5px;color:var(--sub);margin-top:4px">試せるID（架空）：S-2091／S-1187／S-3350／S-4402</div>
+      </div>
+      <div class="fitem">
+        <div class="flabel">契約者名<span class="autobadge show" id="nameBadge">顧客表から</span></div>
+        <input class="finput" id="cname" readonly>
+      </div>
+      <div class="fitem">
+        <div class="flabel">サービス種別<span class="autobadge show" id="planBadge">顧客表から</span></div>
+        <input class="finput" id="cplan" readonly>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 書き起こし -->
+  <div class="panel">
+    <h2>2. 通話の書き起こし<span class="hint">音声の書き起こしを貼るか、聞きながら打つ</span></h2>
+    <div class="formgrid">
+      <div class="fitem wide">
+        <div class="flabel">声から書き起こす（この端末の中で文字にします・声はどこにも送りません）</div>
+        <div class="recbar">
+          <button type="button" class="btn sub small" id="recBtn">録音を始める</button>
+          <span class="btn sub small filebtn">通話の録音ファイルを選ぶ<input type="file" id="audioFile" accept="audio/*"></span>
+          <button type="button" class="btn sub small" id="sampleAudioBtn">見本の通話録音で試す</button>
+        </div>
+        <div class="sttstatus" id="sttStatus"></div>
+        <div class="sttnote">録音ファイルが左右2チャンネル（左＝お客様・右＝担当）なら、話し手を分けて書き起こします。コールセンターの通話基盤（Amazon Connect・Twilio など）は、担当とお客様を左右別々に録音できます。マイク1本の録音では話し手は分けません。</div>
+      </div>
+      <div class="fitem wide">
+        <textarea class="memoinput transcript" id="transcript" placeholder="例）お客様：もしもし、昨日の夜から遅くて、今朝から全く繋がらないんです…"></textarea>
+      </div>
+      <div class="fitem wide">
+        <div class="flabel">AIへ送る文（名前・番号を伏せたあと）</div>
+        <div class="sendbox" id="sendPreview"></div>
+        <div class="sendmeta" id="sendMeta"></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn ai" id="readBtn">AIに読ませる</button>
+      <button type="button" class="btn sub small" id="swapBtn">入電の例を入れる</button>
+      <span class="hintline" id="readHint"></span>
+    </div>
+  </div>
+
+  <!-- 3. 受付の項目 -->
+  <div class="panel">
+    <h2>3. 受付の項目<span class="hint">AIが付けた印を人が確かめる。違っていればタップで直す</span></h2>
+    <div class="formgrid">
+      <div class="fitem wide" id="readNoteWrap" style="display:none"><div class="note plain" id="readNote" style="margin:0"></div></div>
+      <div class="fitem wide">
+        <div class="flabel">ケース種別</div>
+        <div class="chipgroup" data-group="kase">
+          <button type="button" class="chip">断続切断／完全不通</button>
+          <button type="button" class="chip">速度低下</button>
+          <button type="button" class="chip">請求関連</button>
+          <button type="button" class="chip">不明（未分類）</button>
+        </div>
+        <div class="evi" data-evi="kase"></div>
+      </div>
+      <div class="fitem wide">
+        <div class="flabel">発生範囲</div>
+        <div class="chipgroup" data-group="range">
+          <button type="button" class="chip">全回線・不通</button>
+          <button type="button" class="chip">一部屋のみ</button>
+          <button type="button" class="chip">特定機器のみ</button>
+          <button type="button" class="chip">断続的</button>
+          <button type="button" class="chip">該当なし（回線以外）</button>
+        </div>
+        <div class="evi" data-evi="range"></div>
+      </div>
+      <div class="fitem wide">
+        <div class="flabel">実施済みの対応</div>
+        <div class="chipgroup" data-group="done">
+          <button type="button" class="chip">未実施</button>
+          <button type="button" class="chip">再起動案内済み</button>
+          <button type="button" class="chip">リモート確認済み</button>
+        </div>
+        <div class="evi" data-evi="done"></div>
+      </div>
+      <div class="fitem wide">
+        <div class="flabel">訪問希望</div>
+        <div class="chipgroup" data-group="visit">
+          <button type="button" class="chip">至急・今日中</button>
+          <button type="button" class="chip">数日中でよい</button>
+          <button type="button" class="chip">訪問不要・相談のみ</button>
+        </div>
+        <div class="evi" data-evi="visit"></div>
+      </div>
+      <div class="fitem wide">
+        <div class="flabel">症状メモ（AIがお客様の言葉でまとめる・直してよい）</div>
+        <textarea class="memoinput" id="memo" rows="2"></textarea>
+      </div>
+      <div class="fitem wide" id="missWrap" style="display:none">
+        <div class="missbox"><b>まだ聞けていないこと</b><ul id="missList"></ul></div>
+      </div>
+      <div class="fitem wide">
+        <div class="flabel">カスハラの兆し<span style="font-weight:600;margin-left:6px">（AIは発言を抜き出すだけ・対応の段階は規則が決める・カスハラの判定ではありません）</span></div>
+        <div class="harassbox" id="harassBox"><span style="color:var(--sub)">書き起こしをAIに読ませると、ここに出ます。</span></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="goBtn">一次対応を作成する</button>
+      <span class="hintline" id="goHint"></span>
+    </div>
+  </div>
+
+  <div class="out" id="out">
+
+    <div class="note" id="outNote"></div>
+
+    <div class="panel">
+      <h2>判定<span class="badge rule">規則で確定</span></h2>
+      <div class="outsec">
+        <div class="rulebox" id="judgeBox"></div>
+        <div class="rulebox" id="levelBox"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>① お客様への一次返信<span class="badge ai" id="badge1">AIが作成</span></h2>
+      <div class="outsec"><div class="doc" id="replyDoc"></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>② 技術部門への調査依頼<span class="badge ai" id="badge2">AIが作成</span></h2>
+      <div class="outsec">
+        <div class="facts">
+          <div class="frow"><span class="k">契約ID</span><span id="f_cid"></span></div>
+          <div class="frow"><span class="k">サービス種別</span><span id="f_plan"></span></div>
+          <div class="frow"><span class="k">発生範囲</span><span id="f_range"></span></div>
+          <div class="frow"><span class="k">症状</span><span id="f_symptom"></span></div>
+          <div class="frow"><span class="k">実施済みの対応</span><span id="f_done"></span></div>
+        </div>
+        <div class="doc" id="reqDoc"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="handoverPanel" style="display:none">
+      <h2>② の2　上長への引き継ぎメモ<span class="badge ai" id="badge3">AIが作成</span></h2>
+      <div class="outsec"><div class="doc" id="handoverDoc"></div></div>
+    </div>
+
+  </div>
+
+  <!-- 台帳はこの端末に残る -->
+  <div class="panel" id="ledgerPanel">
+    <h2>③ 対応記録台帳<span class="hint">この端末のブラウザの中だけに残ります（AIにも中継にも送りません）</span></h2>
+    <div class="outsec">
+      <div class="ledgerwrap">
+        <table class="ledger">
+          <thead><tr><th>受付日時</th><th>契約ID</th><th>契約者名</th><th>ケース種別</th><th>緊急度</th><th>発生範囲</th><th>実施済み対応</th><th>一次回答期限</th><th>対応の段階</th><th>確認が要る発言</th><th>受付から完成まで</th><th>ステータス</th><th>担当</th></tr></thead>
+          <tbody id="ledgerBody"></tbody>
+        </table>
+      </div>
+      <div class="ledgerbar">
+        <button type="button" class="btn sub small" id="csvBtn">CSVで書き出す</button>
+        <button type="button" class="btn sub small" id="copyBtn">表計算に貼る形でコピー</button>
+        <button type="button" class="btn sub small" id="clearBtn">台帳を空にする</button>
+        <span class="hintline" id="ledgerHint"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    ※架空の会社・架空のデータです。AI（Claude Haiku）がするのは、<b>書き起こしを読んで項目に印を付けること</b>と、<b>文章を組み立てること</b>の2つだけです。緊急度と対応の段階は、この画面の規則で毎回同じ基準で決めます。AIが抜き出した発言が書き起こしに無ければ、規則はそれを採りません。対応の段階は上長に渡すかどうかの目安で、カスハラかどうかを判定・認定するものではありません。最後に判断するのは人です。<br>
+    録音した声は、この端末の中で文字にします（文字起こしの部品を最初に一度だけ読み込みます）。声そのものはどこにも送りません。<br>
+    AIへ送る前に、契約者名・契約ID・電話番号・メール・郵便番号・住所の形をした文字を画面で伏せ、中継でも番号とメールをもう一度確かめます。家族の名前などは機械で拾いきれないため、「AIへ送る文」を見て、書き起こしから消してください。この道具は返信を送信せず、訪問日程も確定しません。試用には1日の回数の上限があります。
+  </div>
+
+  <div class="foot">
+    <span class="cap">架空の会社・データです</span><span class="cap">送信・日程確定はしません</span><span class="cap">名前・番号は伏せてからAIへ</span><span class="cap">台帳はこの端末の中だけ</span>
+  </div>
+
+</div>
+
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  var pad2 = function(n){ return (n < 10 ? "0" : "") + n; };
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
+
+  // ── 顧客表（架空）。契約IDから名前とプランを引く ──
+  var CUSTOMERS = {
+    "S-2091": { sei:"中野", mei:"真理子", plan:"インターネット（戸建てプラン）" },
+    "S-1187": { sei:"森下", mei:"健一", plan:"インターネット（集合住宅プラン）" },
+    "S-3350": { sei:"平田", mei:"彩", plan:"未契約（新規のお問い合わせ）" },
+    "S-4402": { sei:"大川", mei:"誠", plan:"インターネット（戸建てプラン）" }
+  };
+  function customer(){ return CUSTOMERS[$("cid").value.trim().toUpperCase()] || null; }
+  function fullName(c){ return c ? c.sei + " " + c.mei : ""; }
+  function lookupCustomer(){
+    var c = customer();
+    $("cname").value = c ? fullName(c) : ""; $("cplan").value = c ? c.plan : "";
+    $("nameBadge").classList.toggle("show", !!c); $("planBadge").classList.toggle("show", !!c);
+  }
+
+  // ── 1つ目の関所：AIへ送る前に、名前・番号・住所の形を伏せる ──
+  var D = "[0-9０-９]", H = "[-‐－ー―]";
+  var MASKS = [
+    { key:"mail", label:"メール", re:/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, to:"（メールは伏せ）" },
+    { key:"tel", label:"電話番号", re:new RegExp(D + "{2,4}" + H + D + "{2,4}" + H + D + "{3,4}", "g"), to:"（電話番号は伏せ）" },
+    { key:"tel", label:"電話番号", re:new RegExp("0" + D + "{9,10}(?!" + D + ")", "g"), to:"（電話番号は伏せ）" },
+    { key:"zip", label:"郵便番号", re:new RegExp("〒?" + D + "{3}" + H + D + "{4}(?!" + D + ")", "g"), to:"（郵便番号は伏せ）" },
+    { key:"cid", label:"契約ID", re:new RegExp("[A-Za-zＡ-Ｚａ-ｚ]" + H + "?" + D + "{4}(?!" + D + ")", "g"), to:"（契約IDは伏せ）" },
+    { key:"num", label:"長い番号", re:new RegExp(D + "(?:[ 　-]?" + D + "){7,}", "g"), to:"（番号は伏せ）" },
+    { key:"addr", label:"住所", re:new RegExp("[^\\s、。「」：:]{1,8}?[都道府県市区町村][^\\s、。「」：:]{0,12}?" + D + "+(?:丁目|番地?|号|" + H + ")(?:" + D + "+(?:番地?|号|" + H + ")?)*", "g"), to:"（住所は伏せ）" }
+  ];
+  function maskText(text, c){
+    var found = [], counts = {}, s = String(text || "");
+    function hit(key, label, orig){ found.push(orig); counts[label] = (counts[label] || 0) + 1; }
+    if(c){
+      var names = [c.sei + "\\s*" + c.mei, c.sei].concat(c.mei.length >= 2 ? [c.mei] : []);
+      names.forEach(function(n){
+        s = s.replace(new RegExp(n, "g"), function(m){ hit("name", "名前", m); return "〔お客様〕"; });
+      });
+    }
+    MASKS.forEach(function(m){ s = s.replace(m.re, function(x){ hit(m.key, m.label, x); return m.to; }); });
+    return { text:s, found:found, counts:counts };
+  }
+  function countLine(counts){
+    var k = Object.keys(counts);
+    return k.length ? k.map(function(x){ return x + counts[x]; }).join("・") : "なし";
+  }
+  function markMasks(s){
+    return esc(s).replace(/〔お客様〕|（(?:メール|電話番号|郵便番号|契約ID|番号|住所)は伏せ）/g, function(m){ return "<mark>" + m + "</mark>"; });
+  }
+  function updatePreview(){
+    var raw = $("transcript").value.trim();
+    if(!raw){ $("sendPreview").innerHTML = '<span style="color:var(--sub)">書き起こしを入れると、ここに伏せたあとの文が出ます。</span>'; $("sendMeta").innerHTML = ""; return; }
+    var m = maskText(raw, customer());
+    $("sendPreview").innerHTML = markMasks(m.text);
+    $("sendMeta").innerHTML = "伏せたもの：<b>" + esc(countLine(m.counts)) + "</b>　／　住所や家族の名前など、機械で拾いきれないものがあれば、上の書き起こしから消してください。";
+  }
+
+  // ── 受付から完成までを測る（受付の芯：記入の時間を最初から測る） ──
+  var t0 = null, clockTimer = null;
+  function startClock(){
+    if(t0) return;
+    t0 = Date.now(); var d = new Date(t0);
+    $("recvTime").textContent = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    clockTimer = setInterval(tick, 1000); tick();
+  }
+  function fmtSec(sec){ return sec >= 60 ? Math.floor(sec / 60) + "分" + pad2(sec % 60) + "秒" : sec + "秒"; }
+  function tick(){ if(t0) $("clock").textContent = "受付から " + fmtSec(Math.round((Date.now() - t0) / 1000)); }
+  function stopClock(){
+    var sec = t0 ? Math.round((Date.now() - t0) / 1000) : 0;
+    clearInterval(clockTimer); clockTimer = null; t0 = null;
+    $("clock").textContent = "完成まで " + fmtSec(sec);
+    return sec;
+  }
+
+  // ── 入電の例（話し言葉のまま）。中継に届かない時だけ、この例のために用意した読み取りと文書を使う ──
+  var CALLS = [
+    { label:"不通", cid:"S-2091",
+      text:"担当：お電話ありがとうございます。みなと通信サポート窓口でございます。\nお客様：もしもし、中野と申します。昨日の夜から遅いなと思ってたんですけど、今朝から全く繋がらなくなって。\n担当：ご不便をおかけしております。契約IDはお分かりになりますか。\nお客様：えっと、S-2091です。家の中どこでもダメで、スマホのWi-Fiもパソコンも全部です。\n担当：ルーターのランプはいかがでしょうか。\nお客様：赤く点滅してます。まだ何もしてないです。在宅で仕事してるので、できれば今日中に見てもらえませんか。折り返しは携帯の090-1234-5678にお願いします。",
+      read:{ memo:"「昨日の夜から遅かったが、今朝から全く繋がらない。ルーターのランプが赤く点滅している」",
+        kase:"断続切断／完全不通", kase_quote:"今朝から全く繋がらなくなって",
+        range:"全回線・不通", range_quote:"スマホのWi-Fiもパソコンも全部です",
+        done:"未実施", done_quote:"まだ何もしてないです",
+        visit:"至急・今日中", visit_quote:"できれば今日中に見てもらえませんか",
+        missing:["最近の工事や配線の変更の有無", "ランプが赤くなった時刻"], harass:[] },
+      docs:{ urg:"高", level:"通常対応",
+        reply_body:"{{お客様名}}\n\nご連絡ありがとうございます。「今朝から全く繋がらない」とのこと、ご不便をおかけしております。\n担当部門にて、回線側の状況を確認いたします。\n\n恐れ入りますが、1点だけご確認ください。\n・ルーターのランプは、今も赤く点滅していますか（はい／いいえ）\n\n一次回答は2時間以内に、ご指定の連絡先へお知らせいたします。",
+        symptom_summary:"前夜の速度低下から、今朝は全回線不通・ランプ赤点滅",
+        request_items:["回線側の障害・工事情報の有無を最優先で確認", "ランプ赤点滅の原因をリモートで切り分け", "一次見解の返答期限：2時間以内"], handover_memo:"" } },
+    { label:"断続", cid:"S-1187",
+      text:"担当：お電話ありがとうございます。みなと通信サポート窓口でございます。\nお客様：森下です。先週の工事のあとから、夕方になるとWi-Fiが切れるんです。少しすると戻るんですけど。\n担当：ご不便をおかけしております。契約IDを伺えますか。\nお客様：S-1187です。ルーターのランプがオレンジで点滅してて、再起動は2回しました。\n担当：切れるのは、どのお部屋でも同じでしょうか。\nお客様：うーん、どうだったかな。在宅勤務なので、明日までには何とかしてほしいです。",
+      read:{ memo:"「先週の工事のあとから、夕方になるとWi-Fiが切れる。少しすると戻る」",
+        kase:"断続切断／完全不通", kase_quote:"夕方になるとWi-Fiが切れるんです",
+        range:"未確認", range_quote:"",
+        done:"再起動案内済み", done_quote:"再起動は2回しました",
+        visit:"数日中でよい", visit_quote:"明日までには何とかしてほしいです",
+        missing:["切れるのが家全体か一部屋か", "有線の機器でも切れるか"], harass:[] },
+      docs:{ urg:"中", level:"通常対応",
+        reply_body:"{{お客様名}}\n\nご連絡ありがとうございます。「先週の工事のあとから、夕方になるとWi-Fiが切れる」とのこと、ご不便をおかけしております。\n担当部門にて、工事の記録と夕方の通信状況を確認いたします。\n\n恐れ入りますが、1点だけご確認ください。\n・有線でつないだパソコンでも、同じ時間に切れますか（はい／いいえ）\n\n一次回答は本日中にお知らせいたします。",
+        symptom_summary:"工事後、夕方に断続切断・ランプ橙点滅・再起動2回済み",
+        request_items:["先週の工事内容と配線の記録を確認", "夕方の通信ログで切断の時刻と回数を確認", "一次見解の返答期限：本日中"], handover_memo:"" } },
+    { label:"請求", cid:"S-1187",
+      text:"担当：お電話ありがとうございます。みなと通信サポート窓口でございます。\nお客様：森下です、契約はS-1187です。今月の請求が先月より2千円高いんですけど、オプションを付けた覚えはないんです。\n担当：ご確認ありがとうございます。明細はお手元にございますか。\nお客様：紙のは捨てちゃって。メールで明細を送ってもらえますか。morishita.k@example.jp です。急ぎではないです。",
+      read:{ memo:"「今月の請求が先月より2千円高い。オプションを付けた覚えはない。明細をメールで送ってほしい」",
+        kase:"請求関連", kase_quote:"今月の請求が先月より2千円高いんですけど",
+        range:"該当なし（回線以外）", range_quote:"",
+        done:"未実施", done_quote:"",
+        visit:"訪問不要・相談のみ", visit_quote:"急ぎではないです",
+        missing:["高くなったのは何月分からか"], harass:[] },
+      docs:{ urg:"低", level:"通常対応",
+        reply_body:"{{お客様名}}\n\nご連絡ありがとうございます。「今月の請求が先月より2千円高い。オプションを付けた覚えはない」とのこと、確認いたします。\n担当部門にて、ご契約内容と今月の明細を照らし合わせます。\n\n恐れ入りますが、1点だけご確認ください。\n・高くなったのは、今月分が初めてですか（はい／いいえ）\n\n明細の写しを添えて、3営業日以内にご連絡いたします。",
+        symptom_summary:"今月請求が前月比2千円増・オプション追加の覚えなし",
+        request_items:["今月の明細と契約内容の差分を確認", "オプション追加の記録と申込経路を確認", "一次見解の返答期限：3営業日以内"], handover_memo:"" } },
+    { label:"カスハラ", cid:"S-4402",
+      text:"担当：お電話ありがとうございます。みなと通信サポート窓口でございます。\nお客様：大川だけど。これで3回目だぞ、もう1時間も待たされてるんだよ。\n担当：お待たせして申し訳ございません。契約IDを伺えますか。\nお客様：S-4402。夜9時くらいになるとテレビの動画が止まるんだよ。パソコンは知らない。\n担当：テレビでご覧になっている時に止まるのですね。ルーターの再起動はお試しになりましたか。\nお客様：そんなの何回もやってるよ。お前じゃ話にならない、上の人を出せ。今月分はタダにしろ。今日中に直さなかったらSNSに全部書くからな。",
+      read:{ memo:"「夜9時くらいになるとテレビの動画が止まる。再起動は何回もしている」",
+        kase:"速度低下", kase_quote:"夜9時くらいになるとテレビの動画が止まるんだよ",
+        range:"特定機器のみ", range_quote:"パソコンは知らない",
+        done:"再起動案内済み", done_quote:"そんなの何回もやってるよ",
+        visit:"未確認", visit_quote:"",
+        missing:["訪問を希望されるか", "テレビは無線か有線か"],
+        harass:[ { kind:"暴言・人格否定", quote:"お前じゃ話にならない、上の人を出せ" },
+                 { kind:"過大な要求", quote:"今月分はタダにしろ" },
+                 { kind:"脅し", quote:"今日中に直さなかったらSNSに全部書くからな" } ] },
+      docs:{ urg:"中", level:"上長へ引き継ぎ",
+        reply_body:"{{お客様名}}\n\nご連絡ありがとうございます。「夜9時くらいになるとテレビの動画が止まる」とのこと、何度もお電話をいただき、申し訳ございません。\n担当部門にて、夜間の通信状況を確認いたします。\n\n恐れ入りますが、1点だけご確認ください。\n・テレビはルーターと無線でつないでいますか（はい／いいえ）\n\n一次回答は本日中に、責任者よりご連絡いたします。",
+        symptom_summary:"夜21時頃にテレビの動画が停止・再起動は複数回済み",
+        request_items:["夜間の通信ログで速度低下の時間帯を確認", "テレビの接続方法（無線／有線）に応じた切り分け", "一次見解の返答期限：本日中"],
+        handover_memo:"経緯：夜間にテレビの動画が止まる件で、本日3回目の入電（待ち時間は約1時間とのこと）。\n言われた言葉：「お前じゃ話にならない、上の人を出せ」「今月分はタダにしろ」「今日中に直さなかったらSNSに全部書くからな」\nお客様の要求：今月分の無料、本日中の修理、責任者の対応。\n担当がしたこと：症状と再起動の有無を確認。無料・修理日時は約束していません。\n上長に判断してほしいこと：折り返しの担当者と時刻、料金の要求への答え方。" } }
+  ];
+  var callIdx = -1;
+
+  // ── チップ：AIの印を人がタップで直せる ──
+  var GROUPS = ["kase", "range", "done", "visit"];
+  var LABELS = { kase:"ケース種別", range:"発生範囲", done:"実施済みの対応", visit:"訪問希望" };
+  function sel(group){ var c = document.querySelector('[data-group="' + group + '"] .chip.sel'); return c ? c.textContent.trim() : ""; }
+  function pick(group, label, byAI){
+    document.querySelectorAll('[data-group="' + group + '"] .chip').forEach(function(c){
+      var on = c.textContent.trim() === label;
+      c.classList.toggle("sel", on); c.classList.toggle("ai", on && !!byAI);
+    });
+  }
+  function setEvi(group, cls, html){ var e = document.querySelector('[data-evi="' + group + '"]'); e.className = "evi" + (cls ? " " + cls : ""); e.innerHTML = html; }
+  document.querySelectorAll(".chipgroup").forEach(function(g){
+    g.addEventListener("click", function(e){
+      var c = e.target.closest(".chip"); if(!c) return;
+      var group = g.getAttribute("data-group");
+      pick(group, c.textContent.trim(), false);
+      setEvi(group, "human", "人が選びました");
+      $("goHint").textContent = ""; $("goHint").className = "hintline";
+    });
+  });
+
+  // ── カスハラ：AIが抜いた発言を、書き起こしにあるかで確かめてから規則にかける ──
+  var quotes = [];
+  var norm = function(s){ return String(s || "").replace(/\s+/g, ""); };
+  function harassLevel(){
+    var on = quotes.filter(function(q){ return !q.off; });
+    var heavy = on.filter(function(q){ return q.kind === "脅し" || q.kind === "暴言・人格否定"; });
+    if(heavy.length) return { level:"上長へ引き継ぎ", why:"「" + heavy.map(function(q){ return q.kind; }).filter(function(k, i, a){ return a.indexOf(k) === i; }).join("」「") + "」に当たる発言があるため" };
+    if(on.length) return { level:"記録して続行", why:"「" + on[0].kind + "」に当たる発言があるため（脅し・暴言はなし）" };
+    return { level:"通常対応", why:"当たる発言がないため" };
+  }
+  function renderHarass(rejected){
+    var box = $("harassBox");
+    if(!quotes.length){
+      box.innerHTML = '<span style="color:var(--sub)">当たる発言はありませんでした。</span>' + (rejected ? '<div style="font-size:11px;color:var(--sub);margin-top:4px">AIが挙げた発言のうち、書き起こしに無いもの' + rejected + '件は採っていません。</div>' : "") + levelHtml();
+      return;
+    }
+    box.innerHTML = quotes.map(function(q, i){
+      return '<div class="hq' + (q.off ? " off" : "") + '"><span class="kind">' + esc(q.kind) + '</span><span class="q">「' + esc(q.quote) + '」</span><button type="button" data-q="' + i + '">' + (q.off ? "戻す" : "外す") + '</button></div>';
+    }).join("") + (rejected ? '<div style="font-size:11px;color:var(--sub);margin-top:4px">AIが挙げた発言のうち、書き起こしに無いもの' + rejected + '件は採っていません。</div>' : "") + levelHtml();
+  }
+  function levelHtml(){
+    var h = harassLevel();
+    return '<div class="level' + (h.level === "上長へ引き継ぎ" ? " up" : "") + '"><b>対応の段階＝' + h.level + '</b> — ' + esc(h.why) + '。外した発言は数えません。</div>';
+  }
+  $("harassBox").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-q]"); if(!b) return;
+    var q = quotes[+b.getAttribute("data-q")]; q.off = !q.off; renderHarass(lastRejected);
+  });
+  var lastRejected = 0;
+
+  // ── 読み取り結果を画面に当てる ──
+  var readDone = false;
+  function applyRead(r, maskedText, isSample){
+    var who = isSample ? "表示例の印" : "AIの印";
+    var t = norm(maskedText);
+    GROUPS.forEach(function(g){
+      var val = r[g], q = r[g + "_quote"] || "";
+      if(!val || val === "未確認"){ pick(g, "", false); setEvi(g, "miss", "未確認：お客様に聞いて、手で選んでください"); return; }
+      if(q && t.indexOf(norm(q)) < 0){ pick(g, "", false); setEvi(g, "miss", "AIの根拠が書き起こしに見当たらないため、印を付けていません。手で選んでください"); return; }
+      pick(g, val, true);
+      setEvi(g, "ai", q ? who + "　根拠：「" + esc(q) + "」" : who + "（根拠の発言なし）");
+    });
+    $("memo").value = r.memo || "";
+    var miss = (r.missing || []).slice(0, 3);
+    $("missWrap").style.display = miss.length ? "" : "none";
+    $("missList").innerHTML = miss.map(function(m){ return "<li>" + esc(m) + "</li>"; }).join("");
+    lastRejected = 0;
+    quotes = (r.harass || []).filter(function(h){
+      var ok = h && h.quote && t.indexOf(norm(h.quote)) >= 0;
+      if(!ok) lastRejected++;
+      return ok;
+    }).map(function(h){ return { kind:h.kind, quote:h.quote, off:false }; });
+    renderHarass(lastRejected);
+    readDone = true;
+  }
+  function clearRead(){
+    GROUPS.forEach(function(g){ pick(g, "", false); setEvi(g, "", ""); });
+    $("memo").value = ""; $("missWrap").style.display = "none"; quotes = []; lastRejected = 0; readDone = false;
+    $("harassBox").innerHTML = '<span style="color:var(--sub)">書き起こしをAIに読ませると、ここに出ます。</span>';
+    $("readNoteWrap").style.display = "none";
+  }
+  function showReadNote(html){ $("readNote").innerHTML = html; $("readNoteWrap").style.display = ""; }
+
+  // ── 中継（GAS）。鍵はこの画面には無い ──
+  var ENDPOINT = "https://script.google.com/macros/s/AKfycbzzlJe6owPGgZMEu_sIP9p9-lcds-yzrmRCC9x4A7DIFw__vPmQpAaEG4bAMQL5TSVF/exec";
+  var SAMPLE_MODE = location.search.indexOf("sample") >= 0;
+  function visitorId(){
+    try { var k = "b30_visitor", v = localStorage.getItem(k); if(!v){ v = Math.random().toString(36).slice(2, 12); localStorage.setItem(k, v); } return v; } catch(e){ return "anon"; }
+  }
+  async function relay(payload){
+    var ctl = ("AbortController" in window) ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ ctl.abort(); }, 30000) : null;
+    try {
+      var res = await fetch(ENDPOINT, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body:JSON.stringify(payload), signal: ctl ? ctl.signal : undefined });
+      var data = await res.json();
+      if(!data.ok) throw Object.assign(new Error("relay"), { limited: !!data.limited });
+      return data;
+    } finally { if(timer) clearTimeout(timer); }
+  }
+  // 技術向けのエラー文は画面に出さない
+  function whyFailed(err){ return err && err.limited ? "今日の試用回数の上限に達したため" : "AIに届かなかったため"; }
+  // 送った中身に、伏せる前の名前・番号が残っていないかを数える
+  function leftovers(body, found, c, cid){
+    var list = found.slice();
+    if(c){ list.push(c.sei); if(c.mei.length >= 2) list.push(c.mei); }
+    if(cid) list.push(cid);
+    var n = 0;
+    list.filter(function(x, i, a){ return x && a.indexOf(x) === i; }).forEach(function(x){ n += body.split(x).length - 1; });
+    return n;
+  }
+  function exampleNow(){ return callIdx >= 0 && $("transcript").value.trim() === CALLS[callIdx].text && $("cid").value.trim().toUpperCase() === CALLS[callIdx].cid ? CALLS[callIdx] : null; }
+
+  // ── AIに読ませる ──
+  var busy = false;
+  $("readBtn").addEventListener("click", async function(){
+    if(busy) return;
+    var raw = $("transcript").value.trim();
+    if(!raw){ $("readHint").textContent = "書き起こしを入れてください"; $("readHint").className = "hintline warn"; $("transcript").focus(); return; }
+    if(raw.length > 4000){ $("readHint").textContent = "書き起こしは4,000字までです"; $("readHint").className = "hintline warn"; return; }
+    startClock();
+    var c = customer(), m = maskText(raw, c), ex = exampleNow();
+    clearRead();
+    if(SAMPLE_MODE){
+      if(ex){ applyRead(ex.read, m.text, true); showReadNote("<b>表示例</b>です（この入電の例のために用意した読み取り）。"); }
+      else showReadNote("表示例の画面では、入電の例だけを読み取れます。項目を手で選んでください。");
+      return;
+    }
+    busy = true; $("readBtn").disabled = true; $("readBtn").textContent = "AIが読んでいます…"; $("readHint").textContent = "10秒ほどかかります"; $("readHint").className = "hintline";
+    var t1 = Date.now();
+    try {
+      var payload = { app:"day21read", visitor:visitorId(), text:m.text };
+      var body = JSON.stringify(payload);
+      var data = await relay(payload);
+      applyRead(data.result, m.text);
+      var sec = Math.round((Date.now() - t1) / 100) / 10;
+      showReadNote("AI（Claude Haiku）が<b>いま読みました</b>（" + sec + "秒）。送った中身を機械で数えた結果、伏せる前の名前・番号は<b>" + leftovers(body, m.found, c, $("cid").value.trim()) + "回</b>" +
+        (data.relay_masked != null ? "、中継の関所で見つかった残りは<b>" + data.relay_masked + "件</b>" : "") + "でした。印は人が確かめてください。");
+    } catch(err) {
+      if(ex){ applyRead(ex.read, m.text, true); showReadNote(whyFailed(err) + "、<b>この入電の例のために用意した読み取り</b>（表示例）を出しています。"); }
+      else showReadNote(whyFailed(err) + "、読み取りはできませんでした。<b>下の項目を手で選んでください。</b>");
+    } finally {
+      busy = false; $("readBtn").disabled = false; $("readBtn").textContent = "AIに読ませる"; $("readHint").textContent = "";
+    }
+  });
+
+  // ── 入電の例を順に入れる ──
+  function setExample(i){
+    callIdx = i; var c = CALLS[i];
+    $("cid").value = c.cid; lookupCustomer(); $("transcript").value = c.text;
+    clearRead(); $("out").classList.remove("show"); updatePreview();
+    t0 = null; clearInterval(clockTimer); startClock();
+    $("swapBtn").textContent = "入電の例を入れる（次：" + CALLS[(i + 1) % CALLS.length].label + "）";
+    $("readHint").textContent = "例 " + (i + 1) + "／" + CALLS.length + "（" + c.label + "）を入れました。「AIに読ませる」を押してください"; $("readHint").className = "hintline";
+  }
+  $("swapBtn").addEventListener("click", function(){ setExample((callIdx + 1) % CALLS.length); });
+  $("transcript").addEventListener("input", function(){ startClock(); updatePreview(); });
+  $("cid").addEventListener("input", function(){ lookupCustomer(); updatePreview(); });
+
+  // ── 緊急度は規則で確定（AIには判断させない） ──
+  function judge(v, text){
+    var hits = [];
+    if(v.kase === "請求関連"){
+      if(v.visit === "至急・今日中") return { u:"中", dl:"本日中", why:"ケース種別が「請求関連」で、訪問希望が「至急・今日中」のため" };
+      return { u:"低", dl:"3営業日以内", why:"ケース種別が「請求関連」のため" };
+    }
+    if(/(繋|つな)がらない|(繋|つな)がらなく|不通/.test(text)) hits.push("書き起こしに「繋がらない／不通」がある");
+    if(v.visit === "至急・今日中") hits.push("訪問希望が「至急・今日中」");
+    if(v.range === "全回線・不通") hits.push("発生範囲が「全回線・不通」");
+    if(v.kase === "断続切断／完全不通" && v.range !== "断続的") hits.push("ケース種別が「断続切断／完全不通」");
+    if(hits.length) return { u:"高", dl:"2時間以内", why:"次に当たるため：" + hits.join("／") };
+    if(v.kase === "速度低下" || v.range === "断続的" || /遅い|遅く|途切れ|切れる|止まる/.test(text)) return { u:"中", dl:"本日中", why:"速度低下・断続的な症状のため" };
+    return { u:"低", dl:"3営業日以内", why:"不通・緊急の言葉がなく、相談のみのため" };
+  }
+
+  // ── 一次対応を作成する ──
+  $("goBtn").addEventListener("click", async function(){
+    if(busy) return;
+    var raw = $("transcript").value.trim();
+    var missing = GROUPS.filter(function(g){ return !sel(g); });
+    if(!raw){ $("goHint").textContent = "書き起こしを入れてください"; $("goHint").className = "hintline warn"; return; }
+    if(missing.length){ $("goHint").textContent = missing.map(function(g){ return LABELS[g]; }).join("・") + "がまだ決まっていません。お客様に聞いてから選んでください"; $("goHint").className = "hintline warn"; return; }
+    startClock();
+    var c = customer(), cid = $("cid").value.trim().toUpperCase(), name = c ? fullName(c) + " 様" : "お客様";
+    var m = maskText(raw, c);
+    var memo = maskText($("memo").value.trim() || m.text.slice(0, 600), c).text.slice(0, 2000);
+    var v = { kase:sel("kase"), range:sel("range"), done:sel("done"), visit:sel("visit"), plan:c ? c.plan : "" };
+    var j = judge(v, m.text + memo);
+    var h = harassLevel();
+    var on = quotes.filter(function(q){ return !q.off; });
+    var hq = on.map(function(q){ return "「" + q.quote + "」（" + q.kind + "）"; }).join("／").slice(0, 600);
+    var ex = exampleNow();
+    var fits = ex && ex.docs.urg === j.u && ex.docs.level === h.level;
+    var finish = function(docs, how, note){
+      var sec = stopClock();
+      render(v, j, h, on, docs, how, note, { cid:cid, name:name, sec:sec });
+    };
+    if(SAMPLE_MODE){
+      if(fits) finish(ex.docs, "sample", "<b>表示例</b>です（この入電の例のために用意した文書）。");
+      else finish(null, "hand", "表示例の画面のため、AIは文書を作っていません。<b>①と②は手で書いてください。</b>判定と台帳は規則で作っています。");
+      return;
+    }
+    busy = true; $("goBtn").disabled = true; $("goBtn").textContent = "AIが組み立てています…"; $("goHint").textContent = "10秒ほどかかります"; $("goHint").className = "hintline";
+    var t1 = Date.now();
+    try {
+      // 送るのは伏せたメモと選んだ項目だけ。契約者名・契約IDは送らない
+      var payload = { app:"day21", visitor:visitorId(), memo:memo, plan:v.plan, range:v.range, done:v.done, visit:v.visit, kase:v.kase,
+        urgency:j.u, deadline:j.dl, harass:h.level, harass_quotes:hq };
+      var body = JSON.stringify(payload);
+      var data = await relay(payload);
+      var s = Math.round((Date.now() - t1) / 100) / 10;
+      finish(data.result, "ai", "AI（Claude Haiku）が<b>いま組み立てました</b>（" + s + "秒）。送った中身を機械で数えた結果、伏せる前の名前・番号は<b>" + leftovers(body, m.found, c, cid) + "回</b>" +
+        (data.relay_masked != null ? "、中継の関所で見つかった残りは<b>" + data.relay_masked + "件</b>" : "") + "でした。");
+    } catch(err) {
+      if(fits) finish(ex.docs, "sample", whyFailed(err) + "、<b>この入電の例のために用意した文書</b>（表示例）を出しています。");
+      else finish(null, "hand", whyFailed(err) + "、<b>①と②は空欄です。手で書いてください。</b>判定と台帳は規則で作っています。");
+    } finally {
+      busy = false; $("goBtn").disabled = false; $("goBtn").textContent = "一次対応を作成する"; $("goHint").textContent = "";
+    }
+  });
+
+  var BADGE = { ai:["badge ai", "AIが作成"], sample:["badge hand", "表示例"], hand:["badge hand", "手で書く"] };
+  function setDoc(id, text, blankMsg){
+    var el = $(id);
+    if(text){ el.textContent = text; el.classList.remove("blank"); } else { el.textContent = blankMsg; el.classList.add("blank"); }
+  }
+  function render(v, j, h, on, ai, how, note, meta){
+    $("outNote").innerHTML = note;
+    $("judgeBox").innerHTML = "<b>緊急度＝" + j.u + "（" + j.dl + "に一次回答）</b> — " + esc(j.why) + "。";
+    $("levelBox").className = "rulebox" + (h.level === "上長へ引き継ぎ" ? " up" : "");
+    $("levelBox").innerHTML = "<b>対応の段階＝" + h.level + "</b> — " + esc(h.why) + "。" + (h.level === "上長へ引き継ぎ" ? "引き継ぎメモを作り、確認が要る発言を台帳に残します。" : h.level === "記録して続行" ? "確認が要る発言を台帳に残して、対応を続けます。" : "") + (h.level === "通常対応" ? "" : "上長に渡すかどうかの目安です。カスハラかどうかは人が判断します。");
+    ["badge1", "badge2", "badge3"].forEach(function(b){ $(b).className = BADGE[how][0]; $(b).textContent = BADGE[how][1]; });
+    var blank = "（AIの文がないため空欄です。ここは手で書いてください）";
+    setDoc("replyDoc", ai ? String(ai.reply_body || "").replace(/\{\{お客様名\}\}(\s*様)?/g, meta.name) : "", blank);
+    $("f_cid").textContent = meta.cid; $("f_plan").textContent = v.plan || "未契約";
+    $("f_range").textContent = v.range; $("f_symptom").textContent = ai ? (ai.symptom_summary || "") : "（手で書く）"; $("f_done").textContent = v.done;
+    setDoc("reqDoc", ai ? "依頼事項：\n" + (ai.request_items || []).map(function(t, i){ return (i + 1) + ". " + String(t).replace(/^\d+[.．、]\s*/, ""); }).join("\n") : "", blank);
+    var up = h.level === "上長へ引き継ぎ";
+    $("handoverPanel").style.display = up ? "" : "none";
+    if(up) setDoc("handoverDoc", ai ? ai.handover_memo || "" : "", blank);
+    $("out").classList.add("show");
+    var caseShort = { "断続切断／完全不通": (v.range === "断続的" ? "断続切断" : "完全不通"), "速度低下":"速度低下", "請求関連":"請求", "不明（未分類）":"未分類" }[v.kase] || v.kase;
+    var now = new Date();
+    addRow({ time: now.getFullYear() + "/" + pad2(now.getMonth() + 1) + "/" + pad2(now.getDate()) + " " + $("recvTime").textContent,
+      cid:meta.cid, name:meta.name, kase:caseShort, urg:j.u + "（" + j.dl + "）", range:v.range.replace("・不通", "").replace("（回線以外）", ""), done:v.done, dl:j.dl,
+      level:h.level, words:on.map(function(q){ return "「" + q.quote + "」"; }).join(" "), sec:fmtSec(meta.sec), status: up ? "上長へ引き継ぎ" : "受付", staff:"沢渡" });
+    $("out").scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+
+  // ── 台帳：この端末の中だけに残す ──
+  var COLS = [["time","受付日時"],["cid","契約ID"],["name","契約者名"],["kase","ケース種別"],["urg","緊急度"],["range","発生範囲"],["done","実施済み対応"],["dl","一次回答期限"],["level","対応の段階"],["words","確認が要る発言"],["sec","受付から完成まで"],["status","ステータス"],["staff","担当"]];
+  var KEY = "day21_ledger_v2", rows = [], memOnly = false;
+  function loadRows(){ try { rows = JSON.parse(localStorage.getItem(KEY) || "[]") || []; } catch(e){ rows = []; memOnly = true; } }
+  function saveRows(){ try { localStorage.setItem(KEY, JSON.stringify(rows)); } catch(e){ memOnly = true; } }
+  function addRow(r){ rows.unshift(r); saveRows(); renderLedger(true); }
+  function renderLedger(fresh){
+    $("ledgerBody").innerHTML = rows.length ? rows.map(function(r, i){
+      return "<tr" + (fresh && i === 0 ? ' class="new"' : "") + ">" + COLS.map(function(c){ return "<td" + (c[0] === "words" ? ' class="words"' : "") + ">" + esc(r[c[0]] || "") + "</td>"; }).join("") + "</tr>";
+    }).join("") : '<tr><td colspan="13" style="color:var(--sub)">まだ記録はありません。「一次対応を作成する」を押すと、1行ずつ足されます。</td></tr>';
+    $("ledgerHint").textContent = rows.length + "件" + (memOnly ? "（このブラウザでは保存できないため、画面を閉じると消えます）" : "");
+  }
+  function cell(s){ s = String(s == null ? "" : s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  $("csvBtn").addEventListener("click", function(){
+    if(!rows.length){ $("ledgerHint").textContent = "まだ記録がありません"; return; }
+    var csv = [COLS.map(function(c){ return c[1]; })].concat(rows.slice().reverse().map(function(r){ return COLS.map(function(c){ return r[c[0]]; }); }))
+      .map(function(line){ return line.map(cell).join(","); }).join("\r\n");
+    var blob = new Blob(["﻿" + csv], { type:"text/csv;charset=utf-8" });
+    var a = document.createElement("a"), d = new Date();
+    a.href = URL.createObjectURL(blob); a.download = "対応記録台帳_" + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + ".csv";
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    $("ledgerHint").textContent = rows.length + "件をCSVにしました";
+  });
+  $("copyBtn").addEventListener("click", function(){
+    if(!rows.length){ $("ledgerHint").textContent = "まだ記録がありません"; return; }
+    var tsv = [COLS.map(function(c){ return c[1]; })].concat(rows.slice().reverse().map(function(r){ return COLS.map(function(c){ return String(r[c[0]] || "").replace(/[\t\n]/g, " "); }); }))
+      .map(function(l){ return l.join("\t"); }).join("\n");
+    var done = function(){ $("ledgerHint").textContent = rows.length + "件をコピーしました。表計算ソフトに貼り付けられます"; };
+    if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(tsv).then(done, function(){ fallbackCopy(tsv); done(); }); }
+    else { fallbackCopy(tsv); done(); }
+  });
+  function fallbackCopy(t){ var ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch(e){} ta.remove(); }
+  var clearArmed = null;
+  $("clearBtn").addEventListener("click", function(){
+    if(!clearArmed){ $("clearBtn").textContent = "もう一度押すと消えます"; clearArmed = setTimeout(function(){ clearArmed = null; $("clearBtn").textContent = "台帳を空にする"; }, 4000); return; }
+    clearTimeout(clearArmed); clearArmed = null; $("clearBtn").textContent = "台帳を空にする";
+    rows = []; saveRows(); renderLedger(false);
+  });
+
+  // ── 声から書き起こす：Whisper をこの端末の中（Web Worker）で動かす。声は外に出さない ──
+  var STT_LIB = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+  var STT_MODEL = "onnx-community/whisper-base";
+  var sttWorker = null, sttBusy = false;
+  function sttStatus(t, warn){ $("sttStatus").textContent = t; $("sttStatus").className = "sttstatus" + (warn ? " warn" : ""); }
+  function getWorker(){
+    if(sttWorker) return sttWorker;
+    var src = [
+      'import { pipeline, env } from "' + STT_LIB + '";',
+      'env.allowLocalModels = false;',
+      'let asr = null; const seen = {};',
+      'self.onmessage = async (e) => {',
+      '  const segs = e.data.segs;',
+      '  try {',
+      '    if (!asr) asr = await pipeline("automatic-speech-recognition", "' + STT_MODEL + '", { device: "wasm", dtype: "q8",',
+      '      progress_callback: (p) => { if (p.status === "progress" && p.total) { seen[p.file] = [p.loaded, p.total]; let a = 0, b = 0; for (const k in seen) { a += seen[k][0]; b += seen[k][1]; } self.postMessage({ type: "load", loaded: a, total: b }); } } });',
+      '    const out = []; let fails = 0;',
+      '    for (let i = 0; i < segs.length; i++) {',
+      '      self.postMessage({ type: "run", i: i + 1, n: segs.length });',
+      '      const pk = segs[i];',
+      '      let r;',
+      '      try { r = await asr(pk.audio, { language: "japanese", task: "transcribe", return_timestamps: true }); } catch (err) { fails++; continue; }',
+      '      const chunks = r.chunks && r.chunks.length ? r.chunks : [{ timestamp: [0, null], text: r.text }];',
+      '      for (const c of chunks) {',
+      '        const a = (c.timestamp && c.timestamp[0]) || 0;',
+      '        let part = pk.parts[0];',
+      '        for (const q of pk.parts) if (a + 0.3 >= q.at) part = q;',
+      '        out.push({ who: pk.who, t: part.t + Math.max(0, a - part.at), text: String(c.text || "").trim() });',
+      '      }',
+      '    }',
+      '    if (fails && fails === segs.length) throw new Error("all failed");',
+      '    self.postMessage({ type: "done", out: out });',
+      '  } catch (err) { self.postMessage({ type: "error" }); }',
+      '};'
+    ].join("\n");
+    sttWorker = new Worker(URL.createObjectURL(new Blob([src], { type:"text/javascript" })), { type:"module" });
+    return sttWorker;
+  }
+  // 声のある所だけを切り出す（無音を文字にさせない＝ありもしない文が出るのを防ぐ）。30秒を超える塊は分ける
+  function voiced(data, who){
+    var F = 480, n = Math.floor(data.length / F), rms = new Float32Array(n), max = 0, i, j;
+    for(i = 0; i < n; i++){ var s2 = 0; for(j = i * F; j < (i + 1) * F; j++) s2 += data[j] * data[j]; rms[i] = Math.sqrt(s2 / F); if(rms[i] > max) max = rms[i]; }
+    if(max < 0.01) return [];  // いちばん大きい所でもこの程度なら、声ではなく雑音だけ
+    var th = Math.max(0.004, max * 0.1), runs = [], cur = null;
+    for(i = 0; i < n; i++){
+      if(rms[i] > th){ if(cur && i - cur.e <= 20) cur.e = i; else { if(cur) runs.push(cur); cur = { s:i, e:i }; } }
+    }
+    if(cur) runs.push(cur);
+    var segs = [];
+    runs.filter(function(r){ return (r.e - r.s + 1) * 0.03 >= 0.3; }).forEach(function(r){
+      var a = Math.max(0, (r.s - 8) * F), b = Math.min(data.length, (r.e + 9) * F);
+      for(var x = a; x < b; x += 16000 * 28) segs.push({ who:who, t:x / 16000, audio:data.slice(x, Math.min(b, x + 16000 * 28)) });
+    });
+    return segs;
+  }
+  function pack(segs){
+    var GAP = 16000, MAX = 16000 * 28, packs = [], cur = null;
+    segs.forEach(function(sg){
+      if(!cur || cur.who !== sg.who || cur.len + sg.audio.length + GAP > MAX){ cur = { who:sg.who, len:0, bufs:[], parts:[] }; packs.push(cur); }
+      cur.parts.push({ t:sg.t, at:cur.len / 16000 });
+      cur.bufs.push(sg.audio); cur.len += sg.audio.length + GAP;
+    });
+    return packs.map(function(p){
+      var a = new Float32Array(p.len), o = 0;
+      p.bufs.forEach(function(b){ a.set(b, o); o += b.length + GAP; });
+      return { who:p.who, parts:p.parts, audio:a };
+    });
+  }
+  function energy(d){ var s = 0; for(var i = 0; i < d.length; i += 4) s += Math.abs(d[i]); return s; }
+  async function decodeAudio(buf){
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var ctx = new AC({ sampleRate:16000 });
+    try { return await ctx.decodeAudioData(buf); } finally { try { ctx.close(); } catch(e){} }
+  }
+  var NOISE = /ご視聴ありがとうございました|チャンネル登録|^[\s、。．…]*$/;
+  async function transcribeAudio(buf, src){
+    if(sttBusy || busy) return;
+    if(!("Worker" in window) || !(window.AudioContext || window.webkitAudioContext)){ sttStatus("このブラウザでは声から書き起こせません。書き起こしを貼るか、打ってください。", true); return; }
+    sttBusy = true; ["recBtn", "sampleAudioBtn", "readBtn", "goBtn"].forEach(function(id){ $(id).disabled = true; }); $("audioFile").disabled = true;
+    try {
+      sttStatus("録音を読んでいます…");
+      var ab = await decodeAudio(buf), segs, two = false;
+      if(ab.numberOfChannels >= 2){
+        var L = ab.getChannelData(0), R = ab.getChannelData(1), eL = energy(L), eR = energy(R), diff = 0;
+        for(var i = 0; i < L.length; i += 4) diff += Math.abs(L[i] - R[i]);
+        two = diff > 0.2 * Math.max(eL, eR) && Math.min(eL, eR) > 0.02 * Math.max(eL, eR);
+        segs = two ? pack(voiced(L, "お客様")).concat(pack(voiced(R, "担当"))) : pack(voiced(eL >= eR ? L : R, ""));
+      } else segs = pack(voiced(ab.getChannelData(0), ""));
+      if(!segs.length){ sttStatus("声が見つかりませんでした。マイクに向かって話しているか、使うマイクの設定を確かめて、もう一度録音するか、書き起こしを打ってください。", true); return; }
+      var w = getWorker(), t1 = Date.now();
+      var out = await new Promise(function(resolve, reject){
+        w.onmessage = function(e){
+          var m = e.data;
+          if(m.type === "load") sttStatus("文字起こしの部品を読み込んでいます（初回だけ）… " + Math.round(m.loaded / 1048576) + "／" + Math.round(m.total / 1048576) + "MB");
+          else if(m.type === "run") sttStatus("この端末の中で文字にしています… " + m.i + "／" + m.n + (two ? "（左右の話し手を分けています）" : ""));
+          else if(m.type === "done") resolve(m.out);
+          else reject(new Error("stt"));
+        };
+        w.onerror = function(){ reject(new Error("stt")); };
+        w.postMessage({ segs:segs });
+      });
+      out = out.filter(function(o){ return o.text && !NOISE.test(o.text); }).sort(function(a, b){ return a.t - b.t; });
+      if(!out.length){ sttStatus("声が見つかりませんでした。マイクに向かって話しているか、使うマイクの設定を確かめて、もう一度録音するか、書き起こしを打ってください。", true); return; }
+      var lines = [];
+      out.forEach(function(o){
+        var last = lines[lines.length - 1];
+        if(last && last.who === o.who) last.text += o.text; else lines.push({ who:o.who, text:o.text });
+      });
+      $("transcript").value = lines.map(function(l){ return (l.who ? l.who + "：" : "") + l.text; }).join("\n");
+      clearRead(); $("out").classList.remove("show"); startClock(); updatePreview();
+      var sec = Math.round((Date.now() - t1) / 1000);
+      sttStatus("書き起こしに入れました（" + src + "・" + sec + "秒" + (two ? "・左右の話し手を分けました" : "") + "）。声はこの端末の外に出していません。聞き違いがあれば直してから「AIに読ませる」を押してください。");
+    } catch(err) {
+      sttStatus("この端末では声から書き起こせませんでした。書き起こしを貼るか、打ってください。", true);
+      if(sttWorker){ sttWorker.terminate(); sttWorker = null; }
+    } finally {
+      sttBusy = false; ["recBtn", "sampleAudioBtn", "readBtn", "goBtn"].forEach(function(id){ $(id).disabled = false; }); $("audioFile").disabled = false;
+    }
+  }
+  // マイクで録音する（話し手は分けない）
+  var rec = null, recChunks = [], recTimer = null, recAt = 0;
+  $("recBtn").addEventListener("click", async function(){
+    if(rec && rec.state === "recording"){ rec.stop(); return; }
+    if(!navigator.mediaDevices || !window.MediaRecorder){ sttStatus("このブラウザでは録音できません。録音ファイルを選ぶか、書き起こしを打ってください。", true); return; }
+    try {
+      var stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+      recChunks = []; rec = new MediaRecorder(stream);
+      rec.ondataavailable = function(e){ if(e.data && e.data.size) recChunks.push(e.data); };
+      rec.onstop = async function(){
+        clearInterval(recTimer); stream.getTracks().forEach(function(t){ t.stop(); });
+        $("recBtn").textContent = "録音を始める"; $("recBtn").classList.remove("rec");
+        var blob = new Blob(recChunks, { type: rec.mimeType || "audio/webm" });
+        transcribeAudio(await blob.arrayBuffer(), "マイクの録音");
+      };
+      rec.start(); recAt = Date.now(); startClock();
+      $("recBtn").textContent = "録音を止める"; $("recBtn").classList.add("rec");
+      recTimer = setInterval(function(){
+        var s = Math.round((Date.now() - recAt) / 1000);
+        sttStatus("録音しています… " + s + "秒（話し終えたら「録音を止める」）");
+        if(s >= 180) rec.stop();
+      }, 500);
+    } catch(e) { sttStatus("マイクを使えませんでした。ブラウザのマイクの許可を確かめるか、書き起こしを打ってください。", true); }
+  });
+  $("audioFile").addEventListener("change", async function(){
+    var f = this.files && this.files[0]; if(!f) return;
+    if(f.size > 25 * 1048576){ sttStatus("録音ファイルは25MBまでにしてください。", true); this.value = ""; return; }
+    transcribeAudio(await f.arrayBuffer(), "録音ファイル"); this.value = "";
+  });
+  $("sampleAudioBtn").addEventListener("click", async function(){
+    try {
+      sttStatus("見本の通話録音（架空・左右2チャンネル・41秒）を読み込んでいます…");
+      var r = await fetch("sample_call_kasuhara.wav"); if(!r.ok) throw new Error("fetch");
+      $("cid").value = "S-4402"; lookupCustomer(); callIdx = -1;
+      transcribeAudio(await r.arrayBuffer(), "見本の通話録音");
+    } catch(e) { sttStatus("見本の通話録音を読み込めませんでした。", true); }
+  });
+
+  // ── 起動 ──
+  loadRows(); renderLedger(false);
+  setExample(0);
+  if(location.hash === "#go"){ $("readBtn").click(); }
+</script>

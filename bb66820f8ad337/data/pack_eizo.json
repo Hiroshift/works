@@ -1,0 +1,231 @@
+{
+  "industry": "映像制作",
+  "note": "業種の定義。費目の辞書・条件の読み方・似た案件の決め方だけを持つ。差し替えれば他の業種（リフォーム・看板・機械修理など）でも、集める・整える・数える部分はそのまま動く。",
+  "categories": [
+    {
+      "key": "eigo",
+      "label": "英語字幕",
+      "re": [
+        "英語",
+        "英訳"
+      ]
+    },
+    {
+      "key": "jimaku",
+      "label": "テロップ・字幕",
+      "re": [
+        "テロップ",
+        "字幕"
+      ]
+    },
+    {
+      "key": "cg3d",
+      "label": "3DCG",
+      "re": [
+        "3D",
+        "ＣＧ",
+        "CG"
+      ]
+    },
+    {
+      "key": "anime",
+      "label": "アニメーション",
+      "re": [
+        "アニメ",
+        "モーション",
+        "イラスト"
+      ]
+    },
+    {
+      "key": "narration",
+      "label": "ナレーション",
+      "re": [
+        "ナレ"
+      ]
+    },
+    {
+      "key": "ma",
+      "label": "MA（音声の仕上げ）",
+      "re": [
+        "^MA",
+        "整音",
+        "MA（",
+        "MAスタジオ"
+      ]
+    },
+    {
+      "key": "bgm",
+      "label": "BGM",
+      "re": [
+        "BGM",
+        "楽曲",
+        "音楽"
+      ]
+    },
+    {
+      "key": "cast",
+      "label": "出演（プロ）",
+      "re": [
+        "出演",
+        "キャスト",
+        "モデル",
+        "タレント"
+      ]
+    },
+    {
+      "key": "drone",
+      "label": "ドローン空撮",
+      "re": [
+        "ドローン",
+        "空撮"
+      ]
+    },
+    {
+      "key": "ido",
+      "label": "撮影場所の追加",
+      "re": [
+        "移動",
+        "ロケ地追加",
+        "場所追加"
+      ]
+    },
+    {
+      "key": "satsuei",
+      "label": "撮影",
+      "re": [
+        "撮影",
+        "ロケ"
+      ]
+    },
+    {
+      "key": "resize",
+      "label": "サイズ展開",
+      "re": [
+        "リサイズ",
+        "サイズ展開",
+        "サイズ違い"
+      ]
+    },
+    {
+      "key": "henshu",
+      "label": "編集",
+      "re": [
+        "編集"
+      ]
+    },
+    {
+      "key": "tokkyu",
+      "label": "特急対応",
+      "re": [
+        "特急",
+        "短納期"
+      ]
+    },
+    {
+      "key": "shokeihi",
+      "label": "諸経費",
+      "re": [
+        "諸経費",
+        "交通費",
+        "進行管理",
+        "雑費"
+      ]
+    },
+    {
+      "key": "nebiki",
+      "label": "値引き",
+      "re": [
+        "値引"
+      ]
+    },
+    {
+      "key": "kikaku",
+      "label": "企画構成・台本",
+      "re": [
+        "企画",
+        "構成",
+        "台本",
+        "シナリオ",
+        "プランニング",
+        "ディレクション"
+      ]
+    }
+  ],
+  "conditions": {
+    "jissha": {
+      "label": "実写",
+      "from": "has:satsuei"
+    },
+    "anime": {
+      "label": "アニメ",
+      "from": "has:anime"
+    },
+    "cg3d": {
+      "label": "3DCG",
+      "from": "has:cg3d"
+    },
+    "cad": {
+      "label": "CAD支給",
+      "from": "text:cg3d:CAD"
+    },
+    "days": {
+      "label": "撮影日数",
+      "from": "days:satsuei"
+    },
+    "places": {
+      "label": "撮影場所",
+      "from": "places:ido"
+    },
+    "crew": {
+      "label": "撮影人数",
+      "from": "crew:satsuei"
+    },
+    "cast": {
+      "label": "出演",
+      "from": "cast:cast"
+    },
+    "narration": {
+      "label": "ナレーション",
+      "from": "has:narration"
+    },
+    "bgm": {
+      "label": "BGMの形",
+      "from": "bgm:bgm"
+    },
+    "shaku_sec": {
+      "label": "尺",
+      "from": "sec:henshu,anime,title"
+    },
+    "honsu": {
+      "label": "本数",
+      "from": "honsu:henshu,jimaku,resize"
+    },
+    "tokkyu": {
+      "label": "特急",
+      "from": "has:tokkyu"
+    }
+  },
+  "similar": {
+    "same": [
+      "jissha",
+      "anime",
+      "cg3d"
+    ],
+    "ratio": {
+      "shaku_sec": [
+        0.5,
+        2
+      ]
+    },
+    "near": {
+      "honsu": 1
+    },
+    "since_years": 8,
+    "min_n": 8,
+    "per_unit": {
+      "satsuei": "days",
+      "cast": "cast_n"
+    }
+  },
+  "ai_categories_hint": "映像制作会社の見積の品目。スチール撮影・スタジオ代・機材は撮影、声優・VO・ナレーターはナレーション、音効・整音はMA、サムネイル・尺調整・仮編・書き出しは編集、メイク・スタイリストは出演、ロゴアニメはアニメーション。"
+}

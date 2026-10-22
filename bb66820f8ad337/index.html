@@ -1,0 +1,575 @@
+<!doctype html>
+<!-- register: 実在性。①お客様の画面＝映像制作会社のホームページの問い合わせ ②会社の画面＝毎日開く見積の道具（編集ソフトの作法：暗い作業面・タイムライン） -->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI問い合わせと見積アシスタント｜アオバ映像企画（架空）</title>
+<meta name="description" content="お客様はAIの問い合わせフォームに答えるだけ。会社には要件が整った状態で届き、再生ボタンで、まず聞き返すこと・根拠つきの概算・freeeの見積書がそろう。映像制作会社（架空）のデモ。">
+<style>
+:root{
+  --bg:#141518; --panel:#1c1d21; --panel-2:#232429; --panel-3:#2b2d33; --line:#33353c; --line-2:#41444c;
+  --ink:#eceef1; --ink-2:#b9bcc4; --ink-3:#868a94;
+  --v:#6f84e6; --v-2:#4f63c4; --a:#3fae7f; --a-2:#2b8a62; --g:#d9a33f; --rec:#e5484d; --ok:#4cc38a; --warn:#e8a33d;
+  --s-bg:#f6f6f4; --s-ink:#16171a; --s-ink-2:#55585f; --s-line:#e2e2de; --s-acc:#d8432f;
+  --mono:ui-monospace,'SF Mono','JetBrains Mono',Menlo,monospace;
+  --sans:'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;font-feature-settings:"palt" 1}
+button,textarea,input{font:inherit;color:inherit}
+a{color:var(--ink-2)}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+
+/* デモの外枠（2つの画面を切り替える） */
+.frame{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#0b0c0e;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink-3);flex-wrap:wrap}
+.frame .sw{display:flex;gap:6px;flex-wrap:wrap}
+.frame .sw button{display:flex;align-items:center;gap:8px;height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--line-2);background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:600;cursor:pointer}
+.frame .sw button.on{background:var(--ink);color:#111;border-color:var(--ink)}
+.frame .sw .n{min-width:18px;height:18px;border-radius:9px;background:var(--rec);color:#fff;font-size:11px;display:none;place-items:center;padding:0 5px}
+.frame .sw .n.on{display:grid}
+.frame .sp{flex:1}
+.frame a{color:var(--ink-3);text-decoration:none}
+.frame a:hover{color:var(--ink)}
+.view{display:none}.view.on{display:block}
+
+/* ── ① お客様の画面：会社のホームページ ── */
+.site{background:var(--s-bg);color:var(--s-ink);min-height:calc(100vh - 49px)}
+.s-head{display:flex;align-items:center;gap:22px;padding:16px clamp(16px,4vw,48px);background:#fff;border-bottom:1px solid var(--s-line)}
+.s-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;letter-spacing:.02em}
+.s-logo i{width:26px;height:26px;border-radius:6px;background:var(--s-ink);display:grid;place-items:center}
+.s-logo i::after{content:'';border-left:8px solid #fff;border-top:5px solid transparent;border-bottom:5px solid transparent;margin-left:2px}
+.s-nav{display:flex;gap:20px;font-size:13px;color:var(--s-ink-2)}
+.s-nav span.on{color:var(--s-ink);font-weight:700;border-bottom:2px solid var(--s-acc);padding-bottom:2px}
+@media (max-width:640px){.s-nav span:not(.on){display:none}}
+.s-hero{background:#101114;color:#fff;padding:clamp(28px,5vw,56px) clamp(16px,4vw,48px)}
+.s-hero small{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:#9da1aa}
+.s-hero h1{font-size:clamp(24px,3.4vw,38px);font-weight:800;margin-top:6px;line-height:1.3}
+.s-hero p{color:#c5c8cf;margin-top:8px;max-width:40em}
+.s-body{max-width:780px;margin:0 auto;padding:24px clamp(16px,4vw,24px) 60px}
+.form{background:#fff;border:1px solid var(--s-line);border-radius:14px;box-shadow:0 10px 30px -18px rgba(0,0,0,.25);overflow:hidden}
+.form .fh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--s-line);font-size:13px;color:var(--s-ink-2);flex-wrap:wrap}
+.form .fh b{color:var(--s-ink)}
+.form .fh .ai{font-size:10.5px;font-weight:700;color:#fff;background:var(--s-acc);border-radius:4px;padding:0 6px;font-family:var(--mono)}
+.chat{padding:16px;display:flex;flex-direction:column;gap:12px;max-height:56vh;min-height:220px;overflow:auto;background:#fbfbfa}
+.msg{max-width:86%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.7;white-space:pre-wrap}
+.msg.ai{background:#fff;border:1px solid var(--s-line);border-top-left-radius:4px;align-self:flex-start}
+.msg.me{background:var(--s-ink);color:#fff;border-top-right-radius:4px;align-self:flex-end}
+.msg.wait{color:var(--s-ink-2)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;white-space:normal}
+.chip{border:1px solid var(--s-line);background:#f3f3f1;border-radius:999px;padding:4px 12px;font-size:12.5px;cursor:pointer;color:var(--s-ink)}
+.chip:hover{border-color:var(--s-ink)}
+.compose{display:flex;gap:8px;padding:12px;border-top:1px solid var(--s-line);background:#fff}
+.compose textarea{flex:1;min-height:46px;max-height:140px;resize:vertical;border:1px solid var(--s-line);border-radius:10px;padding:10px 12px;font-size:14px;background:#fff;color:var(--s-ink)}
+.compose textarea:focus{outline:none;border-color:var(--s-ink)}
+.compose button{border:0;border-radius:10px;background:var(--s-ink);color:#fff;font-weight:700;padding:0 18px;cursor:pointer}
+.compose button:disabled{opacity:.4;cursor:default}
+.fstat{font-size:12px;color:var(--s-ink-2);padding:0 16px;background:#fff}
+.fstat:not(:empty){padding:8px 16px}
+.fstat.err{color:var(--s-acc)}
+.fsend{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--s-line);background:#f7f7f5;flex-wrap:wrap}
+.fsend small{color:var(--s-ink-2);font-size:12px}
+.fsend button{border:0;border-radius:999px;background:var(--s-acc);color:#fff;font-weight:700;padding:10px 20px;cursor:pointer}
+.fsend button:disabled{opacity:.4;cursor:default}
+.sent{display:none;padding:24px 16px;text-align:center}
+.sent.on{display:block}
+.sent b{font-size:17px}
+.sent p{color:var(--s-ink-2);margin:6px 0 14px}
+.sent button{border:0;border-radius:999px;background:var(--s-ink);color:#fff;font-weight:700;padding:10px 22px;cursor:pointer}
+.s-note{font-size:12px;color:var(--s-ink-2);margin-top:12px}
+
+/* ── ② 会社の画面：見積アシスタント ── */
+.bar{display:flex;align-items:center;gap:14px;height:46px;padding:0 16px;background:#0f1013;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;white-space:nowrap}
+.logo i{width:22px;height:22px;border-radius:5px;background:linear-gradient(135deg,var(--rec),#b9363a);display:grid;place-items:center}
+.logo i::after{content:'';border-left:7px solid #fff;border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;margin-left:2px}
+.logo small{color:var(--ink-3);font-weight:500;margin-left:4px}
+.sp{flex:1}
+.pill{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--warn);animation:blink 1s infinite}
+.dot.ok{background:var(--ok);animation:none}
+@keyframes blink{50%{opacity:.25}}
+@media (max-width:600px){.bar{flex-wrap:wrap;height:auto;padding:8px 12px;row-gap:6px}.logo small{display:none}.pill{font-size:11px;padding:3px 10px}}
+.ws{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:calc(100vh - 95px)}
+@media (max-width:900px){.ws{grid-template-columns:1fr}}
+.inbox{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+@media (max-width:900px){.inbox{border-right:0;border-bottom:1px solid var(--line)}}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:11px;letter-spacing:.12em;color:var(--ink-3);border-bottom:1px solid var(--line);font-family:var(--mono);text-transform:uppercase}
+.ph b{color:var(--ink-2);font-family:var(--sans);letter-spacing:0;font-size:12px;text-transform:none}
+.mail{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 14px;cursor:pointer;position:relative}
+.mail:hover{background:var(--panel-2)}
+.mail.on{background:var(--panel-3)}
+.mail.on::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--rec)}
+.mail .fr{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-3)}
+.mail .su{font-weight:700;font-size:13.5px;margin:2px 0 3px}
+.mail .pv{font-size:12px;color:var(--ink-3);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mail .new{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--v);margin-right:6px}
+.src{display:inline-block;font-size:10px;font-weight:700;border-radius:4px;padding:0 5px;margin-right:6px;font-family:var(--mono)}
+.src.f{background:#3a1f22;color:#ff9a9d}.src.m{background:#262a36;color:#a9b6ec}
+.inbox .foot{margin-top:auto;padding:12px 14px;font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--line)}
+.main{display:flex;flex-direction:column;min-width:0}
+.viewer{padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+.viewer .hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.viewer .hd b{font-size:16px}
+.viewer .hd span{font-size:12px;color:var(--ink-3)}
+textarea.tx{width:100%;min-height:90px;resize:vertical;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.7;color:var(--ink)}
+textarea.tx:focus{outline:none;border-color:var(--line-2)}
+.thread{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.7;max-height:200px;overflow:auto;white-space:pre-wrap;color:var(--ink-2)}
+.thread b{color:var(--ink)}
+.sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin-top:8px}
+.sheet div{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:12px}
+.sheet span{display:block;font-size:10.5px;color:var(--ink-3)}
+.sheet .emp{color:var(--warn);font-style:normal}
+.reply{margin-top:10px;display:none}
+.reply.on{display:block}
+.reply label{display:block;font-size:12px;color:var(--ink-3);margin-bottom:4px}
+.go{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap}
+.play{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 22px 0 16px;border:0;border-radius:999px;background:var(--rec);color:#fff;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 6px 18px -8px rgba(229,72,77,.8)}
+.play i{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center}
+.play i::after{content:'';border-left:9px solid #fff;border-top:6px solid transparent;border-bottom:6px solid transparent;margin-left:3px}
+.play:hover{filter:brightness(1.08)}
+.play:disabled{opacity:.5;cursor:default}
+.go .st{font-size:12.5px;color:var(--ink-3)}
+.go .st.err{color:var(--rec)}
+.out{padding:16px 18px 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:start}
+@media (max-width:1180px){.out{grid-template-columns:1fr}}
+@media (max-width:600px){.viewer,.out{padding-left:12px;padding-right:12px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.card .ph{background:var(--panel-2)}
+.card .bd{padding:14px}
+.empty{grid-column:1/-1;border:1px dashed var(--line-2);border-radius:10px;padding:40px 20px;text-align:center;color:var(--ink-3)}
+.ask{counter-reset:q}
+.ask li{list-style:none;position:relative;padding:10px 0 10px 34px;border-bottom:1px solid var(--line)}
+.ask li:last-child{border-bottom:0}
+.ask li::before{counter-increment:q;content:counter(q);position:absolute;left:0;top:10px;width:22px;height:22px;border-radius:50%;background:var(--panel-3);color:var(--ink-2);font-size:12px;font-weight:700;display:grid;place-items:center;font-family:var(--mono)}
+.ask li.ai::before{background:var(--rec);color:#fff}
+.ask .q{font-weight:700;font-size:14px}
+.ask .w{font-size:12px;color:var(--ink-3);margin-top:2px}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;border-radius:4px;padding:0 6px;margin-left:6px;vertical-align:1px;font-family:var(--mono)}
+.tag.ai{background:#3a1f22;color:#ff9a9d}.tag.diff{background:#3a3020;color:#f1c56f}.tag.miss{background:#262a36;color:#a9b6ec}
+.btnline{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);font-size:13px;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--panel-3)}
+.btn.pri{background:var(--ink);color:#111;border-color:var(--ink)}
+.near{margin-top:14px;padding:10px 12px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
+.near b{color:var(--ink)}
+.near .tc{font-family:var(--mono);color:var(--ink-3);font-size:11.5px}
+.total{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.total .big{font-size:34px;font-weight:800;letter-spacing:-.02em}
+.total .rng{color:var(--ink-3);font-size:13px}
+.judge{font-size:12.5px;margin-top:2px}
+.judge.ok{color:var(--ok)}.judge.ng{color:var(--warn)}
+.tl{margin-top:14px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#17181b}
+.ruler{display:flex;height:20px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;color:var(--ink-3);position:relative;margin-left:44px}
+.ruler span{position:absolute;top:3px;transform:translateX(-50%)}
+.trk{display:flex;align-items:stretch;height:46px;border-bottom:1px solid var(--line)}
+.trk:last-child{border-bottom:0}
+.trk .lb{width:44px;flex:0 0 44px;text-align:center;line-height:1.2;display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink-2);background:var(--panel-2);border-right:1px solid var(--line)}
+.trk .lane{flex:1;display:flex;gap:2px;padding:5px 3px;min-width:0}
+.clip{min-width:64px;border-radius:5px;padding:3px 7px;font-size:11.5px;line-height:1.3;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border:1px solid rgba(255,255,255,.12);text-align:left}
+.clip small{display:block;font-family:var(--mono);opacity:.8;font-size:10.5px}
+.clip.v{background:linear-gradient(180deg,var(--v),var(--v-2))}
+.clip.a{background:linear-gradient(180deg,var(--a),var(--a-2))}
+.clip.g{background:linear-gradient(180deg,var(--g),#a97c25);color:#1c1405}
+.clip.on{outline:2px solid #fff;outline-offset:-1px}
+.clip.none{background:repeating-linear-gradient(45deg,#2b2d33 0 6px,#25272c 6px 12px);color:var(--ink-3);cursor:default}
+.ev{margin-top:12px;padding:12px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
+.ev b{color:var(--ink)}
+.ev .row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.ev .row:last-child{border-bottom:0}
+.ev .row span:first-child{color:var(--ink-3);font-family:var(--mono)}
+.calc{font-size:11.5px;color:var(--ink-3);margin-top:10px;line-height:1.6}
+.qt{width:100%;border-collapse:collapse;font-size:13px}
+.qt th{font-size:11px;color:var(--ink-3);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-2)}
+.qt td{padding:7px 8px;border-bottom:1px solid var(--line)}
+.qt td.r,.qt th.r{text-align:right;font-variant-numeric:tabular-nums}
+.qt tr.sum td{font-weight:700;border-bottom:0}
+.qt tr.sum.big td{font-size:15px}
+.fnote{font-size:12px;color:var(--ink-3);margin-top:10px}
+details{margin-top:10px}
+details summary{cursor:pointer;font-size:12px;color:var(--ink-3)}
+details pre{margin-top:8px;font-family:var(--mono);font-size:11px;background:#111215;border:1px solid var(--line);border-radius:6px;padding:10px;overflow:auto;max-height:260px;color:#c9ccd3}
+.how{grid-column:1/-1}
+.how .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:700px){.how .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.how .k{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.how .k b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.how .k span{font-size:11.5px;color:var(--ink-3)}
+.how p{font-size:12.5px;color:var(--ink-2);margin-top:10px}
+.ev .row.op{cursor:pointer}.ev .row.op:hover{background:var(--panel-3)}
+.near.op{cursor:pointer}
+button.link{background:none;border:0;color:var(--v);cursor:pointer;font-size:12px;padding:0}.near.op:hover{border-color:var(--line-2)}
+.near .open{float:right;font-size:11.5px;color:var(--v)}
+.mdl{position:fixed;inset:0;background:rgba(5,6,8,.72);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;z-index:20}
+.mdl.on{display:flex}
+.doc{background:#fbfbf8;color:#1a1b1e;width:100%;max-width:760px;border-radius:6px;box-shadow:0 30px 80px -20px rgba(0,0,0,.6);overflow:hidden}
+.doc .dbar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#e9e8e3;border-bottom:1px solid #d6d4cc;font-size:12px;color:#55585f;flex-wrap:wrap}
+.doc .dbar b{color:#1a1b1e}
+.doc .dbar .x{margin-left:auto;border:0;background:none;font-size:20px;line-height:1;cursor:pointer;color:#55585f}
+.doc .pg{padding:26px clamp(16px,4vw,40px) 30px}
+.doc h3{text-align:center;font-size:22px;letter-spacing:.4em;font-weight:800;margin-bottom:16px}
+.doc .to{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13.5px;margin-bottom:12px}
+.doc .to b{font-size:16px;border-bottom:1px solid #1a1b1e;padding-bottom:2px}
+.doc .sub{font-size:13.5px;margin-bottom:12px}
+.doc table{width:100%;border-collapse:collapse;font-size:13px}
+.doc th{background:#ecebe6;border:1px solid #cfccc3;padding:6px 8px;font-size:12px;text-align:left}
+.doc td{border:1px solid #d9d6ce;padding:6px 8px}
+.doc td.r,.doc th.r{text-align:right;font-variant-numeric:tabular-nums}
+.doc tr.hl td{background:#fff3c8}
+.doc tr.tot td{font-weight:800}
+.doc .memo{font-size:12.5px;color:#55585f;margin-top:12px}
+.doc .st{display:inline-block;font-size:11px;font-weight:700;border-radius:4px;padding:1px 7px}
+.doc .st.ok{background:#e3f4ea;color:#1f7a4a}.doc .st.ng{background:#eee;color:#666}.doc .st.q{background:#fbf0d8;color:#94650f}
+.doc .acts{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid #d6d4cc;background:#f1f0eb;font-size:12px;color:#55585f;align-items:center}
+.doc .acts button{border:1px solid #bdb9ae;background:#fff;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer;color:#1a1b1e}
+.doc .acts button:disabled{opacity:.5;cursor:default}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#111;font-weight:700;font-size:13px;padding:8px 16px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:99999;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:9px 14px;background:#12121F;color:#fff;font:600 13px/1.6 'Noto Sans JP','Hiragino Sans',sans-serif;">
+<a href="/#cases" style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:999px;background:#fff;color:#12121F;text-decoration:none;font-weight:700;white-space:nowrap;">← アプリ一覧へ戻る</a>
+<span style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;"><span style="opacity:.7;font-weight:500;">架空の会社のデータで動きます。実際のデータは使っていません。</span><a href="https://zenn.dev/hiroshift/articles/bb66820f8ad337" target="_blank" rel="noopener" style="color:#fff;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.4);white-space:nowrap;">設計の解説を読む</a></span>
+</div>
+<div class="frame">
+  <div class="sw">
+    <button id="tSite" class="on">① お客様として問い合わせる</button>
+    <button id="tApp">② 会社で受け取る（見積アシスタント）<span class="n" id="badge">1</span></button>
+  </div>
+  <div class="sp"></div>
+  <span>架空の会社・架空のデータ（過去の見積 約800件）のデモ</span>
+</div>
+
+<!-- ① お客様の画面 -->
+<div class="view on" id="vSite">
+  <div class="site">
+    <div class="s-head"><div class="s-logo"><i></i>アオバ映像企画</div><nav class="s-nav"><span>制作実績</span><span>サービス</span><span>会社案内</span><span class="on">お問い合わせ</span></nav></div>
+    <div class="s-hero"><small>CONTACT</small><h1>お問い合わせ・お見積りのご相談</h1><p>AIの担当が、お見積りに必要なことを順にお伺いします。わかる範囲で大丈夫です。途中で送っていただいても、担当から折り返します。</p></div>
+    <div class="s-body">
+      <div class="form">
+        <div class="fh"><span class="ai">AI</span><b>見積のご相談</b><span>— お答えに合わせて、次の質問が変わります</span></div>
+        <div class="chat" id="chat"></div>
+        <div class="fstat" id="fstat"></div>
+        <div class="compose" id="compose"><textarea id="ans" placeholder="ここに答えを書いて送ってください（会社名・お名前・電話番号は入れないでください）"></textarea><button id="ansSend">送る</button></div>
+        <div class="fsend" id="fsend"><small>聞かれていないことも、わかる範囲で書いていただけます。</small><button id="submit" disabled>この内容で見積を依頼する</button></div>
+        <div class="sent" id="sent"><b>送信しました</b><p>担当より、お見積りのご連絡をいたします。</p><button id="toApp">会社側の画面で、届いた問い合わせを見る →</button></div>
+      </div>
+      <div class="s-note">※このデモの会話は、本物のAI（Claude Haiku）が答えに合わせて組み立てます。送った内容は保存しません。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ② 会社の画面 -->
+<div class="view" id="vApp">
+  <div class="bar">
+    <div class="logo"><i></i>アオバ映像企画<small>見積アシスタント</small></div>
+    <div class="sp"></div>
+    <div class="pill"><span class="dot" id="dbDot"></span><span id="dbText">過去の見積を集めています…</span></div>
+  </div>
+  <div class="ws">
+    <aside class="inbox">
+      <div class="ph">Inbox <b>届いた問い合わせ</b></div>
+      <div id="mails"></div>
+      <div class="foot"><span class="src f">AIフォーム</span>ホームページの問い合わせ（要件を整理済み）　<span class="src m">メール</span>問い合わせ用のメール。どちらも自動でここに並びます。</div>
+    </aside>
+    <section class="main">
+      <div class="viewer" id="viewer"></div>
+      <div class="out" id="out"></div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="mdl" id="mdl"><div class="doc" id="doc"></div></div>
+
+<script src="lib/fflate-0.8.2.min.js"></script>
+<script src="engine.js"></script>
+<script>
+const ENDPOINT="https://script.google.com/macros/s/AKfycbzzlJe6owPGgZMEu_sIP9p9-lcds-yzrmRCC9x4A7DIFw__vPmQpAaEG4bAMQL5TSVF/exec";
+const FULL="seiri/";
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const yen=n=>'¥'+Math.round(n).toLocaleString();
+const man=n=>(Math.round(n/1000)/10).toLocaleString()+'万';
+const mask=t=>t.replace(/[0-9０-９]{2,4}[-‐－][0-9０-９]{2,4}[-‐－][0-9０-９]{3,4}/g,'（電話番号は伏せ）').replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g,'（メールは伏せ）');
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1800); }
+function visitorId(){ try{ const k='b30_visitor'; let v=localStorage.getItem(k); if(!v){ v=Math.random().toString(36).slice(2,12); localStorage.setItem(k,v); } return v; }catch(e){ return 'anon'; } }
+async function relay(text){
+  const res=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:'day23',visitor:visitorId(),text})});
+  const d=await res.json(); if(!d.ok) throw new Error(d.error||'失敗'); return d.result;
+}
+function show(v){ $('vSite').classList.toggle('on',v==='site'); $('vApp').classList.toggle('on',v==='app'); $('tSite').classList.toggle('on',v==='site'); $('tApp').classList.toggle('on',v==='app'); if(v==='app') $('badge').classList.remove('on'); window.scrollTo(0,0); }
+$('tSite').addEventListener('click',()=>show('site')); $('tApp').addEventListener('click',()=>show('app')); $('toApp').addEventListener('click',()=>show('app'));
+
+// 過去の見積は、開いた時点で裏で集める（本番は毎朝の自動処理）
+let DB=null;
+const DBP=SEIRI.ingest('data/',()=>{}).then(d=>{ DB=d; $('dbDot').classList.add('ok'); $('dbText').textContent='過去の見積 '+d.cases.length+'件　準備OK'; return d; }).catch(e=>{ $('dbText').textContent='過去の見積を読めませんでした'; throw e; });
+
+/* ── ① AI問い合わせフォーム ── */
+const GREET='アオバ映像企画です。お問い合わせありがとうございます。どんな動画をお考えですか？　まずは目的と、どこで流す予定かを教えてください。';
+const MAXT=15;
+let CH={log:[{who:'ai',text:GREET,chips:['会社紹介を展示会とWebで','新商品のSNS広告','採用の説明会で流す']}],res:null,busy:false,turns:0};
+function drawChat(){
+  const last=CH.log.length-1;
+  $('chat').innerHTML=CH.log.map((m,i)=>'<div class="msg '+(m.who==='ai'?'ai':'me')+'">'+esc(m.text)+(m.who==='ai'&&i===last&&m.chips&&m.chips.length&&!(CH.res&&CH.res.done)?'<div class="chips">'+m.chips.map(c=>'<button class="chip">'+esc(c)+'</button>').join('')+'</div>':'')+'</div>').join('')+(CH.busy?'<div class="msg ai wait">考えています…</div>':'');
+  $('chat').querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{ const t=$('ans'); t.value=(t.value?t.value+'、':'')+b.textContent; t.focus(); }));
+  $('chat').scrollTop=$('chat').scrollHeight;
+  const done=CH.res&&CH.res.done;
+  $('ansSend').disabled=CH.busy||done||CH.turns>=MAXT; $('ans').disabled=CH.busy||done||CH.turns>=MAXT;
+  $('submit').disabled=CH.busy||!CH.res;
+}
+function transcript(){ return CH.log.map(m=>(m.who==='me'?'お客様：':'滝川：')+m.text).join('\n'); }
+function turnNote(){ const n=CH.turns+1; let t='\n\n【進行】お客様の発言は今'+n+'回目です（'+MAXT+'回目で会話は終わります）。'; if(n>=MAXT) t+='今回が最後です。何も聞かずに締めて、done を true にしてください。'; else if(n>=7) t+='まだ予算を聞いていなければ、今回は予算だけを聞いてください。予算の答えがあれば、締めて done を true にしてください。'; else if(n>=4) t+='見積に大きく効く点だけに絞って聞いてください。'; return t; }
+async function sendAns(){
+  const text=mask($('ans').value.trim()); if(!text||CH.busy) return;
+  CH.log.push({who:'me',text}); $('ans').value=''; CH.busy=true; $('fstat').textContent=''; $('fstat').className='fstat'; drawChat();
+  try{ const r=await relay(transcript()+turnNote()); CH.res=r; CH.turns++; CH.log.push({who:'ai',text:r.reply,chips:r.chips||[]});
+    if(r.done) $('fstat').textContent='ご相談の内容がそろいました。「この内容で見積を依頼する」で送信できます。';
+  }catch(e){ CH.log.pop(); $('ans').value=text; $('fstat').textContent='送れませんでした（'+e.message+'）。もう一度お試しください。'; $('fstat').className='fstat err'; }
+  CH.busy=false; drawChat();
+}
+$('ansSend').addEventListener('click',sendAns);
+$('ans').addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); sendAns(); } });
+$('submit').addEventListener('click',()=>{
+  const r=CH.res, sh=r.sheet||{}, now=new Date(), hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const first=(CH.log.find(m=>m.who==='me')||{}).text||'';
+  ITEMS.unshift({kind:'form',from:'ホームページ（AI問い合わせ）',time:hm,sub:((sh.mokuteki&&sh.mokuteki.value)||(sh.baitai&&sh.baitai.value)||'動画制作のご相談').slice(0,28),body:first,thread:transcript(),res:r,isNew:true});
+  sel=0; drawMails(); openItem();
+  $('compose').style.display='none'; $('fsend').style.display='none'; $('sent').classList.add('on');
+  $('badge').classList.add('on'); toast('会社に、新しい問い合わせが届きました');
+});
+
+/* ── ② 見積アシスタント ── */
+const ITEMS=[
+  {kind:'mail',from:'〇〇精機　総務部',time:'09:12',sub:'会社紹介動画のお見積りについて',isNew:true,
+   body:'はじめてご連絡いたします。来月下旬の展示会のブースで流す、会社紹介の動画を作りたいと考えています。工場で製品を作っている様子を見せたく、社員が何人か出る予定です。展示会のあとは自社サイトにも載せたいと思っています。ご予算は100万円くらいまでで考えています。概算を教えていただけますでしょうか。',
+   fb:{jissha:true,anime:false,cg3d:false,cad:false,days:0,places:1,cast:'shain',narration:'mikakunin',bgm:'mikakunin',shaku_sec:0,honsu:1,tokkyu:'nashi',budget_man:100}},
+  {kind:'mail',from:'〇〇コスメ　マーケティング部',time:'昨日',sub:'新商品のSNS広告動画のご相談',
+   body:'新商品をInstagramとTikTokの広告で出したいと考えています。実写は使わず、ポップなアニメーションにしたいです。15秒と30秒の2本で、縦型がメインです。配信は3か月のキャンペーン期間だけで、12月の頭から始めたいのですが、50万円ほどで可能でしょうか。',
+   fb:{jissha:false,anime:true,cg3d:false,cad:false,days:0,places:0,cast:'nashi',narration:'mikakunin',bgm:'kigen',shaku_sec:30,honsu:2,tokkyu:'mikakunin',budget_man:50}},
+];
+let sel=0;
+function drawMails(){
+  $('mails').innerHTML=ITEMS.map((m,i)=>'<button class="mail'+(i===sel?' on':'')+'" data-i="'+i+'"><div class="fr"><span>'+(m.isNew?'<span class="new"></span>':'')+'<span class="src '+(m.kind==='form'?'f">AIフォーム':'m">メール')+'</span>'+esc(m.from)+'</span><span class="mono">'+esc(m.time)+'</span></div><div class="su">'+esc(m.sub)+'</div><div class="pv">'+esc(m.body)+'</div></button>').join('');
+  document.querySelectorAll('.mail').forEach(b=>b.addEventListener('click',()=>{ sel=+b.dataset.i; ITEMS[sel].isNew=false; drawMails(); openItem(); }));
+}
+const SHEETL=[['baitai','媒体・掲載場所'],['kikan','掲載期間'],['shaku','尺・本数'],['hyougen','実写／アニメ'],['shutsuen','出演'],['satsuei','撮影'],['onsei','ナレーション／BGM'],['nouki','納期'],['yosan','予算'],['mokuteki','目的']];
+function openItem(){
+  const m=ITEMS[sel];
+  let h='<div class="hd"><b>'+esc(m.sub)+'</b><span>'+esc(m.from)+'　'+esc(m.time)+'</span></div>';
+  if(m.kind==='form'){
+    const sh=(m.res&&m.res.sheet)||{};
+    h+='<div class="thread">'+esc(m.thread).replace(/^(お客様：|滝川：)/gm,'<b>$1</b>')+'</div><div class="sheet">'+SHEETL.map(([k,l])=>{ const v=sh[k]&&sh[k].value; return '<div><span>'+l+'</span>'+(v?esc(v):'<i class="emp">未確認</i>')+'</div>'; }).join('')+'</div>';
+  }else{
+    h+='<textarea class="tx" id="body" spellcheck="false">'+esc(m.body)+'</textarea>'+
+      '<div class="reply'+(m.asked?' on':'')+'" id="replyBox"><label>お客様からの返事（届いたら貼って、もう一度 ▶）</label><textarea class="tx" id="replyTx" style="min-height:64px" placeholder="例：サイトには期限なしで載せたいです。尺は3分くらい、ナレーションはプロにお願いしたいです。">'+esc(m.reply||'')+'</textarea></div>';
+  }
+  h+='<div class="go"><button class="play" id="play"><i></i>'+(m.asked?'もう一度 概算をつくる':'概算をつくる')+'</button><span class="st" id="st"></span></div>';
+  $('viewer').innerHTML=h; $('play').addEventListener('click',run);
+  if(m.out) render(m); else $('out').innerHTML='<div class="empty">▶ を押すと、まず聞き返すこと・根拠つきの概算・freeeの見積書が、ここにそろいます。</div>';
+}
+
+const Q={'掲載期間（BGM）':'Webなどへの掲載は、期間限定ですか、期限なしですか','出演（社員かプロか）':'出演される方は、社員の方ですか、プロのキャストですか','ナレーション':'ナレーションは入れますか','撮影日数':'撮影の場所と、日数の目安を教えてください','尺':'動画の長さ（尺）と本数の目安を教えてください','納期':'公開・納品のご希望日を教えてください'};
+function lastQ(reply){ return String(reply||'').split(/(?<=[。？?])/).filter(x=>/[？?]|ください|でしょうか|ますか/.test(x)).join('').trim(); }
+const KW=[['会社紹介','企業紹介','会社案内','コーポレート'],['採用','リクルート'],['展示会','ブース'],['製品','新製品','商品'],['SNS','広告','Instagram','TikTok'],['研修','マニュアル','教育'],['周年','記念','創立'],['イベント','セミナー','式典'],['CM']];
+
+// 納期の言葉から、今日から何日あるかを数える（読めなければ null）
+function noukiDays(t,now){
+  if(!t) return null;
+  t=t.replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248));
+  if(/至急|急ぎ|今週/.test(t)) return 7;
+  const days=d=>Math.round((d-now)/864e5);
+  let m;
+  if(m=t.match(/(\d{1,2})月(\d{1,2})日/)){ const d=new Date(now.getFullYear(),+m[1]-1,+m[2]); if(d<now) d.setFullYear(d.getFullYear()+1); return days(d); }
+  if(m=t.match(/(\d+)\s*週間/)) return +m[1]*7;
+  if(m=t.match(/(\d+)\s*[かヶケカ]月/)) return +m[1]*30;
+  if(m=t.match(/(再来月|来月|今月|(\d{1,2})月)(上旬|初旬|初め|頭|中旬|下旬|末)?/)){
+    let y=now.getFullYear(), mo;
+    if(m[1]==='今月') mo=now.getMonth(); else if(m[1]==='来月') mo=now.getMonth()+1; else if(m[1]==='再来月') mo=now.getMonth()+2; else { mo=+m[2]-1; if(mo<now.getMonth()) y++; }
+    return days(new Date(y,mo,{上旬:5,初旬:5,初め:5,頭:5,中旬:15,下旬:25,末:28}[m[3]]||15));
+  }
+  if(/年内/.test(t)) return days(new Date(now.getFullYear(),11,28));
+  return null;
+}
+// AIが抜き出したお客様の言葉（sheet）から、金額に効く条件を決まった規則で決め直す。同じ問い合わせなら毎回同じ条件＝同じ金額になる
+// 読めた条件は f._rule、言葉はあるのに規則で読めずAIの読み取りのまま残した条件は f._ai に名前を残す（画面に出す）
+// 撮影日数・出演・ナレーションは、AIがその項目に言葉を抜いていなければ、お客様が書いた文（said）から該当する一文を探して読む
+function fixFlags(f,sheet,said){
+  if(!sheet) return;
+  const say=k=>{ const x=sheet[k]||{}; return ((x.quote||'')+' '+(x.value||'')).replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248)).trim(); };
+  const rule=f._rule=[], ai=f._ai=[];
+  // 納期：今日から1か月を切れば特急
+  const nk=sheet.nouki||{}, now=new Date(); now.setHours(0,0,0,0);
+  let d=noukiDays(nk.quote,now); if(d===null) d=noukiDays(nk.value,now);
+  if(d!==null){ f.tokkyu=d<31?'ari':'nashi'; rule.push('納期'); } else if(!say('nouki')) f.tokkyu='mikakunin'; else ai.push('納期');
+  // 尺：いくつか挙がったら長いほう
+  const s=say('shaku'), secs=[];
+  s.replace(/(\d+(?:\.\d+)?)\s*秒/g,(_,n)=>secs.push(+n)); s.replace(/(\d+(?:\.\d+)?)\s*分/g,(_,n)=>secs.push(Math.round(+n*60)));
+  if(secs.length){ f.shaku_sec=Math.max(...secs); rule.push('尺'); } else if(s) ai.push('尺');
+  // 掲載期間：BGMの形が変わる
+  const k=say('kikan');
+  if(/期限なし|無期限|ずっと|恒久|期限は(?:設けない|ない|特に)/.test(k)){ f.bgm='mukigen'; rule.push('掲載期間'); }
+  else if(/\d+\s*[かヶケカ]月|\d+\s*年|\d+\s*週|期間限定|期間だけ|期間中|キャンペーン|まで/.test(k)){ f.bgm='kigen'; rule.push('掲載期間'); }
+  else if(!k) f.bgm='mikakunin'; else ai.push('掲載期間');
+
+  // ここから3つは、AIが足した「（推定）」の値は使わず、お客様の言葉と整えた値だけで読む。一〜五は数字に
+  const say2=k=>{ const x=sheet[k]||{}; return ((x.quote||'')+' '+(/推定/.test(x.value||'')?'':(x.value||''))).replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248)).replace(/[一二三四五]/g,c=>'一二三四五'.indexOf(c)+1).trim(); };
+  const parts=t=>t.split(/[。、,，\n]/).map(x=>x.trim()).filter(Boolean);
+  const NARR=/ナレ|声優|読み上げ|語り|ボイス/;
+  const norm=t=>String(t||'').replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248)).replace(/[一二三四五]/g,c=>'一二三四五'.indexOf(c)+1);
+  const fromSaid=re=>parts(norm(said)).filter(x=>re.test(x)).join('、');
+  // 撮影日数：「半日」「2日」「1日半」「1〜2日」（いくつか挙がったら長いほう）。日付（11月10日）は数えない
+  const sa=say2('satsuei')||fromSaid(/撮影|ロケ/), ds=[];
+  if(/半日/.test(sa)&&!/\d\s*日\s*半/.test(sa)) ds.push(0.5);
+  sa.replace(/(?<![月\d.\/])(\d+(?:\.\d+)?)\s*日\s*(半)?/g,(_,n,h)=>{ if(+n>0) ds.push(+n+(h?0.5:0)); });
+  if(ds.length){ f.days=Math.max(...ds); rule.push('撮影日数'); } else if(!sa) f.days=0; else if(f.jissha) ai.push('撮影日数');
+  // 出演：プロ（キャスト・俳優・タレント・モデル）／社員（社員・スタッフ・社長…）／なし。ナレーションの話の一文は外し、「プロは使わない」「社員は出さない」は打ち消しとして外す
+  const cut=t=>parts(t).filter(x=>!NARR.test(x)).join('、')
+    .replace(/(プロ|キャスト|俳優|役者|タレント|モデル|女優)[^、]{0,10}?(使わ|起用し|起用せ|頼ま|呼ば|入れ|出さ)(ない|ず|なく)/g,'')
+    .replace(/(社員|スタッフ|従業員|職員|社長|代表)[^、]{0,8}?(出ない|出さない|出せない|出られない|映らない|映せない|NG)/g,'');
+  const cs=cut(say2('shutsuen'))||cut(fromSaid(/出演|出る|出て|出ます|登場|映る|キャスト|俳優|タレント|女優|モデルさん/)), ct=cs;
+  if(/プロ|キャスト|俳優|役者|タレント|女優|モデルさん|モデルを|モデルの方/.test(ct)){ f.cast='pro'; rule.push('出演'); }
+  else if(/社員|スタッフ|従業員|職員|社長|代表|自社の|弊社の|うちの/.test(ct)){ f.cast='shain'; rule.push('出演'); }
+  else if(/なし|無し|不要|いない|出ない|出さない|ありません|映らない|使わない|いりません/.test(cs)){ f.cast='nashi'; rule.push('出演'); }
+  else if(/未定|お任せ|おまかせ|相談|検討|迷|これから|まだ/.test(cs)){ f.cast='mikakunin'; rule.push('出演'); }
+  else if(!cs) f.cast=f.jissha?'mikakunin':'nashi';
+  else if(f.jissha) ai.push('出演');
+  // ナレーション：「ナレーション・声優・読み上げ」の一文だけを読む（BGMの話と混ぜない）。言葉が無ければ未確認
+  const ns=[say2('onsei'),say2('shutsuen'),say2('hyougen')].map(parts).flat().filter(x=>NARR.test(x)).join('。')||fromSaid(NARR);
+  if(/ナレ[^。]{0,8}?(なし|無し|不要|いらない|要らない|いりません|入れない|入れず|入れません|なくて|無くて|使わない|しません)|字幕だけ|テロップだけ/.test(ns)){ f.narration='nashi'; rule.push('ナレーション'); }
+  else if(/未定|お任せ|おまかせ|相談|検討|迷|これから|決めていない|決まっていない/.test(ns)){ f.narration='mikakunin'; rule.push('ナレーション'); }
+  else if(ns){ f.narration='ari'; rule.push('ナレーション'); }
+  else f.narration='mikakunin';
+}
+async function run(){
+  const m=ITEMS[sel]; const st=$('st'); $('play').disabled=true; st.className='st';
+  const t0=Date.now();
+  if(m.kind==='form'){
+    st.textContent='AIフォームで整理済みの要件を、過去の見積と照らし合わせています…';
+    m.flags=Object.assign({},m.res.flags||{}); m.aiq=''; m.viaAI=true;
+  }else{
+    m.body=$('body').value; const rep=$('replyTx')?$('replyTx').value.trim():''; m.reply=rep;
+    let text='お客様：'+mask(m.body.trim());
+    if(m.asked&&m.lastAsk) text+='\n滝川：'+m.lastAsk+(rep?'\nお客様：'+mask(rep):'');
+    text+='\n\n【進行】これはお客様から届いた問い合わせのメール'+(rep?'と、こちらの質問への返事':'')+'です。書いてあること・書いてあることから明らかなこと（工場の様子を見せる＝実写、など）は聞き返さないでください。書かれていない中で、金額にいちばん効く一点だけを短く聞いてください。';
+    st.textContent='AIが問い合わせを読んでいます…';
+    try{ const r=await relay(text); m.flags=Object.assign({},r.flags||{}); m.sheet=r.sheet; m.aiq=lastQ(r.reply); m.viaAI=true; }
+    catch(e){ m.flags=Object.assign({},m.fb); m.aiq=''; m.viaAI=false; st.className='st err'; st.textContent='AIに届かなかったので、見本の読み取りで表示しています（'+e.message+'）'; }
+  }
+  const said=m.kind==='form'?String(m.thread||'').split(/\n(?=お客様：|滝川：)/).filter(l=>l.startsWith('お客様：')).map(l=>l.slice(4)).join('。'):m.body+'。'+(m.reply||'');
+  if(m.viaAI) fixFlags(m.flags,m.kind==='form'?(m.res&&m.res.sheet):m.sheet,said);
+  if(!DB){ st.textContent='過去の見積の準備を待っています…'; await DBP; }
+  const txt=(m.kind==='form'?m.thread:m.body+' '+(m.reply||''));
+  m.flags.kw=[].concat(...KW.filter(g=>g.some(k=>txt.includes(k))));
+  m.out=true; m.asked=m.kind==='mail'; m.lastAsk=m.aiq||m.lastAsk;
+  render(m);
+  if(m.viaAI) st.textContent=(m.kind==='form'?'整理済みの要件から作りました':'AIが読んで、過去の見積と照らし合わせました')+'（'+(Math.round((Date.now()-t0)/100)/10)+'秒）';
+  $('play').disabled=false;
+  if(m.kind==='mail'){ $('replyBox').classList.add('on'); $('play').innerHTML='<i></i>もう一度 概算をつくる'; }
+}
+
+function evAmt(cat,v){
+  if(cat!=='satsuei'&&cat!=='cast') return yen(v.a);
+  const orig=v.c.lines.filter(l=>l.cat===cat).reduce((t,l)=>t+l.amount,0), u=cat==='satsuei'?v.c.cond.days:v.c.cond.cast_n, unit=cat==='satsuei'?'日':'名';
+  return (cat==='satsuei'?'1日あたり ':'1名あたり ')+yen(v.a)+'<small style="color:var(--ink-3)">（元 '+yen(orig)+'・'+(u===0.5?'半日':u+unit)+'）</small>';
+}
+function render(m){
+  const f=m.flags, c=SEIRI.compare(DB,f), e=SEIRI.estimate(DB,f);
+  const items=[];
+  if(m.aiq) items.push({cls:'ai',tag:'<span class="tag ai">AI</span>',q:m.aiq,w:'問い合わせを読んだAIが、最初に聞き返すべきと判断した一問'});
+  (c?c.todo:[]).forEach(t=>{ if(!m.aiq||!m.aiq.includes(t.label.replace(/（.*/,'').slice(0,2))) items.push({cls:'',tag:'<span class="tag miss">未確認</span>',q:Q[t.label]||t.label,w:t.why}); });
+  (c?c.diffs:[]).forEach(d=>items.push({cls:'',tag:'<span class="tag diff">前回と違う</span>',q:d.label+'：今回は「'+d.now+'」、前回は「'+d.before+'」',w:d.why}));
+  m.qs=items.filter(i=>i.cls==='ai'||i.tag.includes('miss')).map(i=>i.q);
+  const ask='<div class="card"><div class="ph">Check <b>まず聞き返すこと（押さえどころ）</b></div><div class="bd"><ol class="ask">'+
+    (items.length?items.map(i=>'<li class="'+i.cls+'"><div class="q">'+esc(i.q)+i.tag+'</div><div class="w">'+esc(i.w)+'</div></li>').join(''):'<li><div class="q">大事な点は、そろっています</div><div class="w">このまま見積に進めます</div></li>')+
+    '</ol><div class="btnline"><button class="btn pri" id="copyReply">返信の下書きをコピー</button></div>'+
+    (c?'<div class="near op" data-cid="'+esc(c.c.id)+'"><span class="open">元の見積を開く →</span>いちばん似た過去の案件：<b>'+esc(c.c.title)+'</b>　'+yen(c.c.total)+'<br><span class="tc">'+esc(c.c.date)+'　'+esc(c.c.srcLabel)+'</span></div>':'')+'</div></div>';
+  const rows=e.rows.filter(x=>!x.none), A=['narration','ma','bgm'], G=['tokkyu','kikaku'];
+  const vRows=rows.filter(x=>!A.includes(x.cat)), aRows=rows.filter(x=>A.includes(x.cat)), tot=e.total.mid||1;
+  const clip=x=>'<button class="clip '+(A.includes(x.cat)?'a':G.includes(x.cat)?'g':'v')+'" data-k="'+rows.indexOf(x)+'" title="'+esc(x.name)+'　'+man(x.lo)+'〜'+man(x.hi)+'" style="flex:'+Math.max(x.mid/tot,0.06)+' 1 0">'+esc(x.name)+'<small>'+man(x.mid)+'</small></button>';
+  const bud=f.budget_man>0?f.budget_man*10000:0;
+  const judge=!bud?'':(e.total.hi<=bud?'<div class="judge ok">ご予算'+f.budget_man+'万円に収まる見込み</div>':e.total.lo>bud?'<div class="judge ng">ご予算'+f.budget_man+'万円を上回る見込み＝構成を相談</div>':'<div class="judge ng">ご予算'+f.budget_man+'万円の前後＝振れ幅しだい</div>');
+  const nones=e.rows.filter(x=>x.none);
+  // 条件の決め方：お客様の言葉から規則で決めたもの／AIの読み取りのままのもの（人が確かめる）
+  const cv={'納期':f.tokkyu==='ari'?'特急':f.tokkyu==='nashi'?'通常':'未確認','尺':f.shaku_sec>0?f.shaku_sec+'秒':'未確認','掲載期間':f.bgm==='mukigen'?'無期限':f.bgm==='kigen'?'期間限定':'未確認',
+    '撮影日数':f.days>0?(f.days===0.5?'半日':f.days+'日'):'未確認','出演':{pro:'プロ',shain:'社員',nashi:'なし'}[f.cast]||'未確認','ナレーション':{ari:'あり',nashi:'なし'}[f.narration]||'未確認',
+    '表現':[f.jissha?'実写':'',f.anime?'アニメ':'',f.cg3d?'3DCG':''].filter(Boolean).join('＋')||'未確認','CAD':f.cad?'支給あり':'なし','撮影場所':f.places>0?f.places+'か所':'未確認','本数':f.honsu>0?f.honsu+'本':'未確認','予算':f.budget_man>0?f.budget_man+'万円':'未確認'};
+  const cl=a=>a.map(n=>esc(n)+'（'+esc(cv[n])+'）').join('・');
+  const aiL=(f._ai||[]).concat(['表現'],f.cg3d?['CAD']:[],f.jissha?['撮影場所']:[],['本数','予算']);
+  const hw=m.viaAI&&f._rule?'<div class="calc">条件の決め方：'+(f._rule.length?'<b>規則</b>（お客様の言葉から決まった規則で）＝'+cl(f._rule)+'。':'')+'<b>AIの読み取り</b>＝'+cl(aiL)+'。AIの読み取りの条件は、人が確かめてください。</div>':'';
+  const est='<div class="card"><div class="ph">Estimate <b>根拠つきの概算</b></div><div class="bd">'+
+    '<div class="total"><span class="big num">'+yen(e.total.mid)+'</span><span class="rng num">'+man(e.total.lo)+' 〜 '+man(e.total.hi)+'（税抜）</span></div>'+judge+
+    '<div class="tl"><div class="ruler">'+[0.25,0.5,0.75].map(p=>'<span style="left:'+(p*100)+'%">'+man(tot*p)+'</span>').join('')+'</div>'+
+    '<div class="trk"><div class="lb">V1<br><small style="font-size:9.5px;color:var(--ink-3);font-weight:500">映像</small></div><div class="lane">'+vRows.map(clip).join('')+'</div></div>'+
+    '<div class="trk"><div class="lb">A1<br><small style="font-size:9.5px;color:var(--ink-3);font-weight:500">音</small></div><div class="lane">'+(aRows.length?aRows.map(clip).join(''):'<div class="clip none" style="flex:1">音（ナレーション・MA・BGM）は未確認</div>')+'</div></div></div>'+
+    '<div class="ev" id="ev"></div>'+
+    hw+(nones.length?'<div class="calc">金額に入れていないもの：'+nones.map(x=>esc(x.name)+'（'+esc(x.why)+'）').join('／')+'</div>':'')+
+    '<div class="calc">金額はAIではなく決まった計算です。過去に受注した'+e.pool+'件（freee以前のExcelも含む）から条件の似た'+e.sim.length+'件を数え、費目ごとに真ん中の半分（下から25〜75%）の幅を出しています。同じ条件なら毎回同じ金額です。'+(e.notes.length?esc(e.notes.join('。'))+'。':'')+'<br><b>概算は過去の見積から数えた目安で、見積の確定ではありません。AIの読み取りは間違えることがあります。条件と金額は人が確かめてください。</b></div></div></div>';
+  const lines=rows.map(x=>({type:'item',description:x.name,quantity:1,unit:'式',unit_price:String(x.mid),tax_rate:10}));
+  const sum=rows.reduce((t,x)=>t+x.mid,0), tax=Math.floor(sum*0.1);
+  const body={company_id:'（貴社のfreee事業所ID）',quotation_date:'（今日）',subject:m.sub.slice(0,30)+' 概算見積',partner_id:'（取引先）',partner_title:'御中',tax_entry_method:'out',tax_fraction:'omit',withholding_tax_entry_method:'out',lines};
+  const fq='<div class="card" style="grid-column:1/-1"><div class="ph">freee <b>freeeの見積書（送付前）</b></div><div class="bd">'+
+    '<table class="qt"><tr><th>品目</th><th class="r">数量</th><th class="r">単価（税抜）</th></tr>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td class="r">1 式</td><td class="r">'+yen(x.mid)+'</td></tr>').join('')+
+    '<tr class="sum"><td>小計</td><td></td><td class="r">'+yen(sum)+'</td></tr><tr><td>消費税（10%）</td><td></td><td class="r">'+yen(tax)+'</td></tr><tr class="sum big"><td>合計</td><td></td><td class="r">'+yen(sum+tax)+'</td></tr></table>'+
+    '<div class="btnline"><button class="btn" id="mkQ">freeeに見積書を作る</button></div>'+
+    '<div class="fnote" id="mkNote">単価は各費目の真ん中の金額で仮置き。押すと、freeeに見積書を作る中身を組み立てます（このデモはfreeeに送りません）。お客様に送るのは、金額を確かめた人です。</div>'+
+    '<details id="tech"><summary>技術者向け：freeeに送る中身（freee請求書API・POST /iv/quotations）</summary><pre>'+esc(JSON.stringify(body,null,2))+'</pre></details></div></div>';
+  const s=DB.stats, fr=DB.cases.filter(x=>x.src==='freee').length, ex=DB.cases.filter(x=>x.src==='excel').length;
+  const how='<div class="card how"><details style="margin:0"><summary style="padding:12px 14px;font-size:13px;color:var(--ink-2)">過去の見積は、どう集めたか（freee・Excel・外注の支払い）</summary><div class="bd"><div class="grid">'+
+    '<div class="k"><b>'+fr+'件</b><span>freeeの見積書（APIで読み戻したもの）</span></div><div class="k"><b>'+ex+'件</b><span>freee以前のExcel（'+s.excelFiles+'ファイル）</span></div>'+
+    '<div class="k"><b>'+(s.byRule/s.lines*100).toFixed(1)+'%</b><span>品目名を言葉の一覧で読めた割合</span></div><div class="k"><b>'+DB.cases.filter(x=>x.mochidashi).length+'件</b><span>後から掲載を延ばされた持ち出し</span></div></div>'+
+    '<p>普段の置き場（freee・共有フォルダのExcel・外注の支払い）を読みに行くだけで、新しく入力するものはありません。言葉の一覧で読めなかった品目名（'+s.odd.length+'種類）だけをAIが振り分けます。</p>'+
+    '<p><a href="'+FULL+'" target="_blank" rel="noopener">集めて整える過程を見る →</a></p></div></details></div>';
+  $('out').innerHTML=ask+est+fq+how;
+  document.querySelectorAll('.clip[data-k]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.clip').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    const x=rows[+b.dataset.k];
+    $('ev').innerHTML='<b>'+esc(x.name)+'</b>　'+yen(x.lo)+' 〜 '+yen(x.hi).slice(1)+'　真ん中 '+yen(x.mid)+'<br><span style="font-size:12px;color:var(--ink-3)">'+(x.cat==='tokkyu'?'特急の過去'+x.n+'件の割合から':'似た案件'+x.n+'件'+(x.wide?'（似た条件が少ないので条件を広げて数えた）':''))+(x.note?'。'+esc(x.note):'')+'</span>'+
+      ((x.ev||[]).map((v,j)=>'<div class="row op'+(j>=6?' more':'')+'" data-cid="'+esc(v.c.id)+'" data-cat="'+x.cat+'" title="元の見積を開く"'+(j>=6?' style="display:none"':'')+'><span>'+esc(v.c.date)+'　'+esc(v.c.srcLabel)+'</span><span>'+esc(v.c.title)+'　'+evAmt(x.cat,v)+'</span></div>').join(''))+((x.ev||[]).length>6?'<div class="row"><button class="link" id="evAll">全'+x.ev.length+'件を見る（freee以前のExcelも）</button><span></span></div>':'');
+    const ea=$('evAll'); if(ea) ea.addEventListener('click',()=>{ document.querySelectorAll('.ev .row.more').forEach(r=>r.style.display=''); ea.parentElement.remove(); });
+  }));
+  const fc=document.querySelector('.clip[data-k]'); if(fc) fc.click();
+  $('copyReply').addEventListener('click',()=>{
+    const qs=m.qs, to=m.kind==='form'?'お客様':m.from.replace(/　.*/,'')+' ご担当者様';
+    const txt=to+'\n\nお問い合わせありがとうございます。アオバ映像企画の◯◯です。\n概算をお出しするにあたり、次の点を教えていただけますでしょうか。\n\n'+(qs.length?qs.map((q,i)=>(i+1)+'. '+q.replace(/[。？?]+$/,'')+'。').join('\n'):'1. ご希望の内容で、あらためて概算をお送りします。')+'\n\nいただいた内容をもとに、過去の似た事例から概算をお送りします。\nどうぞよろしくお願いいたします。';
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('返信の下書きをコピーしました')).catch(()=>toast('コピーできませんでした'));
+  });
+  $('mkQ').addEventListener('click',()=>{ $('mkNote').innerHTML='<b style="color:var(--ok)">見積書の中身を組み立てました。</b>本番ではこのままfreeeに見積書（送付前）として作られ、滝川さんがfreeeの画面で確かめてから送ります。このデモは送信しません。'; $('tech').open=true; });
+}
+
+// 元の見積を丸ごと開く（今回の金額に使った行に色）。Excelは元のファイルをそのまま渡す
+const CATL={kikaku:'企画構成・台本',satsuei:'撮影',ido:'撮影場所の追加',cast:'出演',henshu:'編集',jimaku:'テロップ・字幕',eigo:'英語字幕',anime:'アニメーション',cg3d:'3DCG',narration:'ナレーション',ma:'MA',bgm:'BGM',resize:'サイズ展開',tokkyu:'特急',shokeihi:'諸経費',nebiki:'値引き',drone:'ドローン'};
+function openCase(id,cat){
+  const c=DB.cases.find(x=>String(x.id)===String(id)); if(!c) return;
+  const stc=c.status==='受注'||c.status==='受注（推定）'?'ok':c.status==='失注'?'ng':'q';
+  const sum=c.lines.reduce((t,l)=>t+l.amount,0);
+  $('doc').innerHTML='<div class="dbar"><b>'+esc(c.srcLabel)+'</b><span>'+esc(c.date||'')+'</span><span class="st '+stc+'">'+esc(c.status)+'</span><span title="'+esc(c.statusWhy||'')+'">'+esc(c.statusWhy||'')+'</span><button class="x" id="mx" aria-label="閉じる">×</button></div>'+
+    '<div class="pg"><h3>御見積書</h3><div class="to"><b>'+esc(c.partner||'')+'　御中</b><span>'+esc(c.date||'')+'<br>アオバ映像企画（架空）</span></div>'+
+    '<div class="sub">件名：'+esc(c.title)+'</div>'+
+    '<table><tr><th>品目</th><th>費目（読み替え）</th><th class="r">数量</th><th class="r">単価</th><th class="r">金額</th></tr>'+
+    c.lines.map(l=>'<tr class="'+(cat&&l.cat===cat?'hl':'')+'"><td>'+esc(l.desc)+'</td><td>'+esc(CATL[l.cat]||'（未決定）')+(l.how==='ai'?'　AI':l.how==='person'?'　人':'')+'</td><td class="r">'+esc(l.qty)+' '+esc(l.unit||'')+'</td><td class="r">'+yen(l.price)+'</td><td class="r">'+yen(l.amount)+'</td></tr>').join('')+
+    '<tr class="tot"><td colspan="4">合計（税抜）</td><td class="r">'+yen(sum)+'</td></tr></table>'+
+    (c.memo?'<div class="memo">備考：'+esc(c.memo)+'</div>':'')+
+    (cat?'<div class="memo">黄色の行が、今回の「'+esc(CATL[cat]||cat)+'」の金額に使った行です。</div>':'')+'</div>'+
+    '<div class="acts">'+(c.src==='excel'?'<button id="dlx">元のExcelファイルを開く</button><span>'+esc(c.file)+'</span>':'<button disabled>freeeで開く（本番）</button><span>このデモでは、freeeの開発用テスト事業所から読み戻した中身を表示しています</span>')+'</div>';
+  $('mdl').classList.add('on');
+  $('mx').addEventListener('click',()=>$('mdl').classList.remove('on'));
+  if(c.src==='excel') $('dlx').addEventListener('click',async()=>{
+    const b=$('dlx'); b.disabled=true; b.textContent='取り出しています…';
+    try{ const buf=await (await fetch('data/kyu_mitsumori_2019-2021.zip')).arrayBuffer(); const files=fflate.unzipSync(new Uint8Array(buf));
+      const key=Object.keys(files).find(k=>k.endsWith('/'+c.file)); const blob=new Blob([files[key]],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=c.file; document.body.appendChild(a); a.click(); a.remove(); b.textContent='元のExcelファイルを開く';
+    }catch(e){ b.textContent='取り出せませんでした'; }
+    b.disabled=false;
+  });
+}
+document.addEventListener('click',e=>{ const el=e.target.closest&&e.target.closest('[data-cid]'); if(el) openCase(el.dataset.cid, el.dataset.cat||''); });
+$('mdl').addEventListener('click',e=>{ if(e.target.id==='mdl') $('mdl').classList.remove('on'); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('mdl').classList.remove('on'); });
+
+drawChat(); drawMails(); openItem();
+</script>
+</body>
+</html>
